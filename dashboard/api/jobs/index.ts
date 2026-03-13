@@ -8,7 +8,8 @@ import {
   StaleSiteEntity,
   RecycleBinResultEntity,
 } from "../shared/types";
-import { TableEntity } from "@azure/data-tables";
+import { TableEntity, odata } from "@azure/data-tables";
+import { VALID_JOB_TYPES, ValidJobType } from "../shared/types";
 
 /** Map job types to their results table names. */
 const RESULTS_TABLE_MAP: Record<string, string> = {
@@ -17,6 +18,8 @@ const RESULTS_TABLE_MAP: Record<string, string> = {
   StaleSiteDetector: "StaleSiteRecommendations",
   RecycleBinCleaner: "RecycleBinResults",
 };
+
+const VALID_STATUSES = ["Running", "Completed", "Failed", "Stopped"] as const;
 
 const handler: AzureFunction = async function (
   context: Context,
@@ -44,14 +47,31 @@ async function handleListJobs(
 ): Promise<void> {
   const typeFilter = req.query.type;
   const statusFilter = req.query.status;
-  const top = parseInt(req.query.top ?? "50", 10);
+  const topParam = parseInt(req.query.top ?? "50", 10);
+  const top = Math.min(Math.max(1, topParam), 200);
+
+  // Validate inputs against allowlists to prevent OData injection
+  if (typeFilter && !VALID_JOB_TYPES.includes(typeFilter as ValidJobType)) {
+    context.res = errorResponse(
+      `Invalid type filter. Must be one of: ${VALID_JOB_TYPES.join(", ")}`,
+      400
+    );
+    return;
+  }
+  if (statusFilter && !VALID_STATUSES.includes(statusFilter as typeof VALID_STATUSES[number])) {
+    context.res = errorResponse(
+      `Invalid status filter. Must be one of: ${VALID_STATUSES.join(", ")}`,
+      400
+    );
+    return;
+  }
 
   const filters: string[] = [];
   if (typeFilter) {
-    filters.push(`PartitionKey eq '${typeFilter}'`);
+    filters.push(odata`PartitionKey eq ${typeFilter}`);
   }
   if (statusFilter) {
-    filters.push(`Status eq '${statusFilter}'`);
+    filters.push(odata`Status eq ${statusFilter}`);
   }
 
   const filter = filters.length > 0 ? filters.join(" and ") : undefined;
@@ -68,12 +88,16 @@ async function handleGetJob(
   context: Context,
   jobId: string
 ): Promise<void> {
+  // Validate jobId format (expected: YYYYMMDD_HHmmss)
+  if (!/^\d{8}_\d{6}$/.test(jobId)) {
+    context.res = errorResponse("Invalid job ID format", 400);
+    return;
+  }
+
   // JobRuns use JobType as PartitionKey and RunId as RowKey.
-  // Since we don't know the partition key from the URL alone,
-  // scan across all partitions for this RunId.
   const jobs = await queryEntities<JobRunEntity>(
     "JobRuns",
-    `RowKey eq '${jobId}'`
+    odata`RowKey eq ${jobId}`
   );
 
   if (jobs.length === 0) {
@@ -89,9 +113,10 @@ async function handleGetJob(
 
   if (resultsTableName) {
     try {
+      const runId = job.rowKey ?? "";
       results = await queryEntities<TableEntity>(
         resultsTableName,
-        `PartitionKey eq '${job.rowKey}'`
+        odata`PartitionKey eq ${runId}`
       );
     } catch {
       // Results table may not exist; return empty array

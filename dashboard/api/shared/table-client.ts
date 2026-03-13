@@ -1,55 +1,26 @@
 import {
   TableClient,
-  TableServiceClient,
-  AzureNamedKeyCredential,
   odata,
   TableEntity,
 } from "@azure/data-tables";
+import { DefaultAzureCredential } from "@azure/identity";
 
-let serviceClient: TableServiceClient | null = null;
+const credential = new DefaultAzureCredential();
 
-function getServiceClient(): TableServiceClient {
-  if (serviceClient) {
-    return serviceClient;
-  }
-
-  const connectionString = process.env.AZURE_STORAGE_CONNECTION_STRING;
-  if (connectionString) {
-    serviceClient = TableServiceClient.fromConnectionString(connectionString);
-    return serviceClient;
-  }
-
+function getAccountName(): string {
   const accountName = process.env.AZURE_STORAGE_ACCOUNT_NAME;
-  const accountKey = process.env.AZURE_STORAGE_ACCOUNT_KEY;
-  if (accountName && accountKey) {
-    const credential = new AzureNamedKeyCredential(accountName, accountKey);
-    const url = `https://${accountName}.table.core.windows.net`;
-    serviceClient = new TableServiceClient(url, credential);
-    return serviceClient;
+  if (!accountName) {
+    throw new Error(
+      "AZURE_STORAGE_ACCOUNT_NAME is required."
+    );
   }
-
-  throw new Error(
-    "Azure Table Storage configuration missing. Set AZURE_STORAGE_CONNECTION_STRING or AZURE_STORAGE_ACCOUNT_NAME + AZURE_STORAGE_ACCOUNT_KEY."
-  );
+  return accountName;
 }
 
 export function getTableClient(tableName: string): TableClient {
-  const connectionString = process.env.AZURE_STORAGE_CONNECTION_STRING;
-  if (connectionString) {
-    return TableClient.fromConnectionString(connectionString, tableName);
-  }
-
-  const accountName = process.env.AZURE_STORAGE_ACCOUNT_NAME;
-  const accountKey = process.env.AZURE_STORAGE_ACCOUNT_KEY;
-  if (accountName && accountKey) {
-    const credential = new AzureNamedKeyCredential(accountName, accountKey);
-    const url = `https://${accountName}.table.core.windows.net`;
-    return new TableClient(url, tableName, credential);
-  }
-
-  throw new Error(
-    "Azure Table Storage configuration missing. Set AZURE_STORAGE_CONNECTION_STRING or AZURE_STORAGE_ACCOUNT_NAME + AZURE_STORAGE_ACCOUNT_KEY."
-  );
+  const accountName = getAccountName();
+  const url = `https://${accountName}.table.core.windows.net`;
+  return new TableClient(url, tableName, credential);
 }
 
 export async function queryEntities<T extends TableEntity>(

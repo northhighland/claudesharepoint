@@ -25,7 +25,7 @@ const handler: AzureFunction = async function (
       return;
     }
 
-    const isDryRun = dryRun ?? false;
+    const isDryRun = dryRun ?? true;
 
     context.log.info(
       `Triggering runbook: Invoke-Orchestrator with JobType=${jobType}, DryRun=${isDryRun}`
