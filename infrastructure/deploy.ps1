@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-    Deploys SharePoint Space Agent v2 infrastructure to Azure.
+    Deploys claudesharepoint infrastructure to Azure.
 
 .DESCRIPTION
     Deploys all Azure resources via Bicep:
@@ -64,7 +64,7 @@ $startTime = Get-Date
 
 Write-Host ""
 Write-Host "============================================" -ForegroundColor Cyan
-Write-Host "  SharePoint Space Agent v2 - Deployment" -ForegroundColor Cyan
+Write-Host "  claudesharepoint - Deployment" -ForegroundColor Cyan
 Write-Host "============================================" -ForegroundColor Cyan
 Write-Host ""
 Write-Host "Started: $startTime"

@@ -2,7 +2,7 @@
 
 <#
 .SYNOPSIS
-    SharePoint Space Agent — One-command setup wizard for Azure Cloud Shell.
+    claudesharepoint — One-command setup wizard for Azure Cloud Shell.
 
 .DESCRIPTION
     Downloads all setup components from GitHub and runs an interactive 8-step
@@ -11,7 +11,7 @@
 
 .NOTES
     Organization: North Highland
-    Usage:       irm https://raw.githubusercontent.com/northhighland/space-agent/main/setup/Install-SpaceAgent.ps1 | iex
+    Usage:       irm https://raw.githubusercontent.com/northhighland/claudesharepoint/main/setup/Install-SpaceAgent.ps1 | iex
 #>
 
 $ErrorActionPreference = 'Stop'
@@ -21,7 +21,7 @@ $ProgressPreference    = 'SilentlyContinue'   # Speed up Invoke-RestMethod in Cl
 #  Constants
 # ─────────────────────────────────────────────
 
-$RepoBaseUrl = "https://raw.githubusercontent.com/northhighland/space-agent/main"
+$RepoBaseUrl = "https://raw.githubusercontent.com/northhighland/claudesharepoint/main"
 $ScriptVersion = "1.0.0"
 
 # ─────────────────────────────────────────────
@@ -109,7 +109,7 @@ Get-ChildItem (Join-Path $workDir "setup/steps") -Filter "*.ps1" |
 
 Write-Host ""
 Write-Host "  ============================================" -ForegroundColor Cyan
-Write-Host "    SharePoint Space Agent — Setup Wizard"       -ForegroundColor Cyan
+Write-Host "    claudesharepoint — Setup Wizard"       -ForegroundColor Cyan
 Write-Host "  ============================================" -ForegroundColor Cyan
 Write-Host "  Version $ScriptVersion | North Highland"       -ForegroundColor DarkGray
 Write-Host ""

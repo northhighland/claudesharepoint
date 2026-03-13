@@ -1,4 +1,4 @@
-# SharePoint Space Agent v2
+# claudesharepoint
 
 ## Project Overview
 Storage management platform for North Highland's SharePoint/Teams environment (7,160+ sites).

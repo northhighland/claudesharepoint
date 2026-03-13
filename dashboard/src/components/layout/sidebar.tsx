@@ -63,7 +63,7 @@ export function Sidebar(): React.ReactElement {
         {/* Logo */}
         <div className="flex h-16 items-center gap-2 border-b border-border px-6">
           <Database className="h-6 w-6 text-primary" />
-          <span className="text-lg font-semibold">Space Agent</span>
+          <span className="text-lg font-semibold">claudesharepoint</span>
         </div>
 
         {/* Navigation */}
@@ -92,7 +92,7 @@ export function Sidebar(): React.ReactElement {
 
         {/* Footer */}
         <div className="border-t border-border px-6 py-4">
-          <p className="text-xs text-muted-foreground">Space Agent v2</p>
+          <p className="text-xs text-muted-foreground">claudesharepoint</p>
           <p className="text-xs text-muted-foreground">North Highland</p>
         </div>
       </aside>

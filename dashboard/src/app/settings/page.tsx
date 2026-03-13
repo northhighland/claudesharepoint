@@ -56,7 +56,7 @@ export default function SettingsPage(): React.ReactElement {
         <div>
           <h1 className="text-2xl font-bold">Settings</h1>
           <p className="text-sm text-muted-foreground">
-            Configure Space Agent automation parameters
+            Configure claudesharepoint automation parameters
           </p>
         </div>
         <div className="space-y-4">
@@ -74,7 +74,7 @@ export default function SettingsPage(): React.ReactElement {
         <div>
           <h1 className="text-2xl font-bold">Settings</h1>
           <p className="text-sm text-muted-foreground">
-            Configure Space Agent automation parameters
+            Configure claudesharepoint automation parameters
           </p>
         </div>
         <button

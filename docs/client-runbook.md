@@ -1,4 +1,4 @@
-# SharePoint Space Agent — Client Operations Runbook
+# claudesharepoint — Client Operations Runbook
 
 > Your organization's SharePoint storage management is now automated.
 > This guide covers day-to-day operations, troubleshooting, and configuration.
@@ -299,7 +299,7 @@ This disables all schedules without deleting any configuration. Re-enable them w
 
 ## 8. Uninstalling
 
-To completely remove the SharePoint Space Agent:
+To completely remove the claudesharepoint:
 
 ### Step 1: Remove Azure Resources
 

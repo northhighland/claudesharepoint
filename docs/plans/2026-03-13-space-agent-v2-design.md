@@ -1,4 +1,4 @@
-# SharePoint Space Agent v2 — Design Document
+# claudesharepoint — Design Document
 
 **Date:** 2026-03-13
 **Author:** Jason LePage

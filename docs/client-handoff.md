@@ -1,6 +1,6 @@
-# SharePoint Space Agent — Client Handoff Guide
+# SharePoint claudesharepoint — Client Handoff Guide
 
-> **Audience:** North Highland consultants deploying the Space Agent for a client.
+> **Audience:** North Highland consultants deploying the claudesharepoint for a client.
 > **Duration:** 45-60 minutes (deploy + walkthrough).
 
 ---
@@ -41,7 +41,7 @@ Complete these items **before** the kickoff call:
 3. Have them paste the install command:
 
    ```powershell
-   irm https://raw.githubusercontent.com/northhighland/space-agent/main/setup/Install-SpaceAgent.ps1 | iex
+   irm https://raw.githubusercontent.com/northhighland/claudesharepoint/main/setup/Install-SpaceAgent.ps1 | iex
    ```
 
 4. Walk them through each prompt:
@@ -87,7 +87,7 @@ If any step fails, the wizard will offer a retry option.
 | App registration fails | Missing Azure AD permissions | Confirm Global Admin role |
 | Dashboard deployment hangs | Static Web App region unavailable | Try a different region |
 
-If a step fails repeatedly, note the error message and contact the Space Agent engineering team.
+If a step fails repeatedly, note the error message and contact the claudesharepoint engineering team.
 
 ### Post-Deploy Dashboard Walkthrough (15-20 minutes)
 

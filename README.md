@@ -1,4 +1,4 @@
-# SharePoint Space Agent v2
+# claudesharepoint
 
 Automated storage management for SharePoint Online and Microsoft Teams environments. Reclaims storage through version cleanup, quota management, recycle bin processing, and stale site detection — across thousands of sites in parallel.
 

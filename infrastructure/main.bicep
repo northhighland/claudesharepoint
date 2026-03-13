@@ -174,7 +174,7 @@ resource jobFailureAlert 'Microsoft.Insights/metricAlerts@2018-03-01' = if (!emp
         actionGroupId: actionGroup.id
       }
     ]
-    description: 'Alert when Space Agent automation jobs fail'
+    description: 'Alert when claudesharepoint automation jobs fail'
   }
 }
 

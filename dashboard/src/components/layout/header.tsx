@@ -17,7 +17,7 @@ export function Header(): React.ReactElement {
       {/* Title (visible on mobile to the right of hamburger) */}
       <div className="flex items-center gap-2 pl-10 lg:pl-0">
         <Database className="h-5 w-5 text-primary lg:hidden" />
-        <h1 className="text-lg font-semibold">Space Agent</h1>
+        <h1 className="text-lg font-semibold">claudesharepoint</h1>
       </div>
 
       {/* User info */}

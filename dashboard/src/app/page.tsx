@@ -14,7 +14,7 @@ export default function OverviewPage(): React.ReactElement {
       <div>
         <h1 className="text-2xl font-bold">Overview</h1>
         <p className="text-sm text-muted-foreground">
-          SharePoint Space Agent storage management dashboard
+          claudesharepoint storage management dashboard
         </p>
       </div>
 

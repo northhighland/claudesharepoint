@@ -98,8 +98,8 @@ function Invoke-Step06_UploadRunbooks {
     RootModule        = 'SpaceAgent.psm1'
     ModuleVersion     = '1.0.0'
     GUID              = '$(New-Guid)'
-    Author            = 'SharePoint Space Agent'
-    Description       = 'Shared module for SharePoint Space Agent runbooks'
+    Author            = 'claudesharepoint'
+    Description       = 'Shared module for claudesharepoint runbooks'
     PowerShellVersion = '7.2'
 }
 "@

@@ -2,7 +2,7 @@
 #Requires -Modules Az.Accounts, Az.KeyVault, Az.Storage, Az.Automation
 
 # SpaceAgent.psm1 v2
-# Shared module for SharePoint Space Agent Azure Automation runbooks
+# Shared module for claudesharepoint Azure Automation runbooks
 # Provides authentication, site enumeration, Table Storage results, token refresh,
 # Graph API retry, checkpoint persistence, notifications, and configuration
 #
@@ -1050,7 +1050,7 @@ function Send-Notification {
                     }
                     $factsHtml += "</table>"
                 }
-                "<html><body><h2>$Title</h2><p>$Message</p>$factsHtml<hr/><p style='font-size:11px;color:#999;'>SharePoint Space Agent | $(Get-Date -Format 'yyyy-MM-dd HH:mm')</p></body></html>"
+                "<html><body><h2>$Title</h2><p>$Message</p>$factsHtml<hr/><p style='font-size:11px;color:#999;'>claudesharepoint | $(Get-Date -Format 'yyyy-MM-dd HH:mm')</p></body></html>"
             }
 
             # Build recipients

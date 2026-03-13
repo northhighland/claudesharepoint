@@ -1,7 +1,7 @@
 {
-  "$schema": "https://raw.githubusercontent.com/northhighland/space-agent/main/runbooks/config/defaults.schema.json",
+  "$schema": "https://raw.githubusercontent.com/northhighland/claudesharepoint/main/runbooks/config/defaults.schema.json",
   "version": "2.0.0",
-  "description": "Default configuration values for SharePoint Space Agent v2 runbooks",
+  "description": "Default configuration values for claudesharepoint runbooks",
   "processing": {
     "expireAfterDays": 90,
     "maxMajorVersions": 100,

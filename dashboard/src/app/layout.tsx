@@ -8,9 +8,9 @@ import { Header } from "@/components/layout/header";
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 
 export const metadata: Metadata = {
-  title: "Space Agent - SharePoint Storage Management",
+  title: "claudesharepoint - SharePoint Storage Management",
   description:
-    "Monitoring dashboard for SharePoint Space Agent v2 — automated storage management for North Highland.",
+    "Monitoring dashboard for claudesharepoint — automated storage management for North Highland.",
 };
 
 export default function RootLayout({
