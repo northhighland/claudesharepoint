@@ -1,0 +1,52 @@
+{
+  "$schema": "https://raw.githubusercontent.com/northhighland/space-agent/main/runbooks/config/defaults.schema.json",
+  "version": "2.0.0",
+  "description": "Default configuration values for SharePoint Space Agent v2 runbooks",
+  "processing": {
+    "expireAfterDays": 90,
+    "maxMajorVersions": 100,
+    "batchSize": 100,
+    "waveSize": 30,
+    "exclusionPatterns": [
+      "*-my.sharepoint.com*",
+      "*REDIRECT*"
+    ]
+  },
+  "quota": {
+    "incrementGB": 25,
+    "alertThresholdPercent": 95,
+    "warningThresholdPercent": 90
+  },
+  "staleSite": {
+    "scoring": {
+      "noActivity180Days": 40,
+      "noActiveUsers90Days": 25,
+      "lessThan10Files": 15,
+      "lessThan100MB": 10,
+      "olderThan2Years": 10
+    },
+    "categories": {
+      "active": { "min": 0, "max": 20 },
+      "lowActivity": { "min": 21, "max": 50 },
+      "dormant": { "min": 51, "max": 70 },
+      "recommendArchive": { "min": 71, "max": 85 },
+      "recommendDelete": { "min": 86, "max": 100 }
+    }
+  },
+  "recycleBin": {
+    "clearSecondStage": true,
+    "minSizeMB": 0
+  },
+  "notifications": {
+    "onJobComplete": true,
+    "onJobFailed": true,
+    "onQuotaAlert": true,
+    "monthlyStaleDigest": true,
+    "staleDigestScoreThreshold": 80
+  },
+  "versionableExtensions": [
+    ".docx", ".doc", ".xlsx", ".xls",
+    ".pptx", ".ppt", ".one", ".onetoc2",
+    ".pdf", ".vsdx", ".vsd"
+  ]
+}

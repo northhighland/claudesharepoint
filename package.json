@@ -1,0 +1,14 @@
+{
+  "name": "sharepoint-space-agent-v2",
+  "version": "2.0.0",
+  "private": true,
+  "description": "SharePoint storage management platform — version cleanup, quota management, stale site detection, and monitoring dashboard",
+  "scripts": {
+    "dev": "cd dashboard && npm run dev",
+    "build": "cd dashboard && npm run build",
+    "lint": "cd dashboard && npm run lint"
+  },
+  "workspaces": [
+    "dashboard"
+  ]
+}

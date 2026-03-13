@@ -1,0 +1,11 @@
+{
+  "configurations": {
+    "app": {
+      "appLocation": ".",
+      "outputLocation": ".next",
+      "apiLocation": "api",
+      "run": "npm run dev",
+      "appDevserverUrl": "http://localhost:3000"
+    }
+  }
+}
