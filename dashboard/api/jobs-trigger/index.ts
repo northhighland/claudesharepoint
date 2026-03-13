@@ -2,12 +2,14 @@ import { AzureFunction, Context, HttpRequest } from "@azure/functions";
 import { triggerRunbook } from "../shared/automation-client";
 import { jsonResponse, errorResponse } from "../shared/response";
 import { TriggerJobRequest, VALID_JOB_TYPES, ValidJobType } from "../shared/types";
+import { getClientPrincipal } from "../shared/auth";
 
 const handler: AzureFunction = async function (
   context: Context,
   req: HttpRequest
 ): Promise<void> {
   try {
+    const principal = getClientPrincipal(req);
     const body = req.body as TriggerJobRequest | undefined;
 
     if (!body || !body.jobType) {
@@ -28,7 +30,7 @@ const handler: AzureFunction = async function (
     const isDryRun = dryRun ?? true;
 
     context.log.info(
-      `Triggering runbook: Invoke-Orchestrator with JobType=${jobType}, DryRun=${isDryRun}`
+      `[AUDIT] Runbook triggered: JobType=${jobType}, DryRun=${isDryRun}, User=${principal.userDetails}`
     );
 
     const jobId = await triggerRunbook("Invoke-Orchestrator", {
@@ -44,10 +46,8 @@ const handler: AzureFunction = async function (
       202
     );
   } catch (error: unknown) {
-    const message =
-      error instanceof Error ? error.message : "Unknown error occurred";
-    context.log.error("jobs-trigger error:", message);
-    context.res = errorResponse(message);
+    context.log.error("jobs-trigger error:", error);
+    context.res = errorResponse("Failed to trigger job. Contact your administrator.");
   }
 };
 

@@ -34,10 +34,8 @@ const handler: AzureFunction = async function (
 
     return await handleListJobs(context, req);
   } catch (error: unknown) {
-    const message =
-      error instanceof Error ? error.message : "Unknown error occurred";
-    context.log.error("jobs error:", message);
-    context.res = errorResponse(message);
+    context.log.error("jobs error:", error);
+    context.res = errorResponse("An internal error occurred.");
   }
 };
 

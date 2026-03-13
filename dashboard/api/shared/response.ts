@@ -14,6 +14,12 @@ export interface ApiErrorResponse {
 
 export type ApiResponse<T> = ApiSuccessResponse<T> | ApiErrorResponse;
 
+const SECURITY_HEADERS: Record<string, string> = {
+  "Content-Type": "application/json",
+  "Cache-Control": "no-store",
+  "X-Content-Type-Options": "nosniff",
+};
+
 export function jsonResponse<T>(data: T, status = 200): {
   status: number;
   headers: Record<string, string>;
@@ -21,7 +27,7 @@ export function jsonResponse<T>(data: T, status = 200): {
 } {
   return {
     status,
-    headers: { "Content-Type": "application/json" },
+    headers: SECURITY_HEADERS,
     body: JSON.stringify({ success: true, data }),
   };
 }
@@ -36,7 +42,7 @@ export function errorResponse(
 } {
   return {
     status,
-    headers: { "Content-Type": "application/json" },
+    headers: SECURITY_HEADERS,
     body: JSON.stringify({ success: false, error: message }),
   };
 }

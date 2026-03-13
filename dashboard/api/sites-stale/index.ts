@@ -7,6 +7,7 @@ import {
 } from "../shared/table-client";
 import { jsonResponse, errorResponse } from "../shared/response";
 import { StaleSiteEntity, StaleSiteActionRequest } from "../shared/types";
+import { getClientPrincipal } from "../shared/auth";
 
 const TABLE_NAME = "StaleSiteRecommendations";
 const VALID_ACTIONS = ["Keep", "Archive", "Delete"] as const;
@@ -26,10 +27,8 @@ const handler: AzureFunction = async function (
 
     context.res = errorResponse("Method not allowed", 405);
   } catch (error: unknown) {
-    const message =
-      error instanceof Error ? error.message : "Unknown error occurred";
-    context.log.error("sites-stale error:", message);
-    context.res = errorResponse(message);
+    context.log.error("sites-stale error:", error);
+    context.res = errorResponse("An internal error occurred.");
   }
 };
 
@@ -83,7 +82,14 @@ async function handlePost(
     return;
   }
 
+  const principal = getClientPrincipal(req);
   const { siteUrl, action } = body;
+
+  // Validate siteUrl format
+  if (!/^https:\/\/[\w-]+\.sharepoint\.com\//.test(siteUrl)) {
+    context.res = errorResponse("Invalid SharePoint site URL format.", 400);
+    return;
+  }
 
   if (!VALID_ACTIONS.includes(action as (typeof VALID_ACTIONS)[number])) {
     context.res = errorResponse(
@@ -112,12 +118,17 @@ async function handlePost(
     return;
   }
 
+  context.log.info(
+    `[AUDIT] Stale site action: ${action} on ${siteUrl} by ${principal.userDetails}`
+  );
+
   // Update the entity with admin action
   await upsertEntity(TABLE_NAME, {
     partitionKey: target.partitionKey,
     rowKey: target.rowKey,
     AdminAction: action,
     AdminActionDate: new Date().toISOString(),
+    AdminActionBy: principal.userDetails,
   });
 
   // Return the updated entity

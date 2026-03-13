@@ -36,10 +36,8 @@ const handler: AzureFunction = async function (
 
     context.res = jsonResponse(results);
   } catch (error: unknown) {
-    const message =
-      error instanceof Error ? error.message : "Unknown error occurred";
-    context.log.error("quota-status error:", message);
-    context.res = errorResponse(message);
+    context.log.error("quota-status error:", error);
+    context.res = errorResponse("An internal error occurred.");
   }
 };
 

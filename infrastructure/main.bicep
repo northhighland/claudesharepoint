@@ -39,8 +39,12 @@ resource keyVault 'Microsoft.KeyVault/vaults@2023-07-01' = {
     enabledForDiskEncryption: false
     enabledForTemplateDeployment: false
     networkAcls: {
-      defaultAction: 'Allow'
+      defaultAction: 'Deny'
       bypass: 'AzureServices'
+      ipRules: [
+        { value: '98.62.142.244' }
+        { value: '8.31.229.4' }
+      ]
     }
   }
 }
@@ -131,6 +135,28 @@ resource automationContributorRole 'Microsoft.Authorization/roleAssignments@2022
   properties: {
     roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'f353d9bd-d4a6-484e-a77a-8050b599b867')
     principalId: automation.outputs.principalId
+    principalType: 'ServicePrincipal'
+  }
+}
+
+// RBAC: SWA managed identity → Storage Table Data Reader (read-only dashboard access)
+resource swaStorageRole 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (enableStorageAccount) {
+  name: guid(resourceGroup().id, 'swa-csp-${clientCode}', 'Storage Table Data Reader')
+  scope: resourceGroup()
+  properties: {
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '76199698-9eea-4c19-bc75-cec21354c6b6')
+    principalId: staticWebApp.outputs.principalId
+    principalType: 'ServicePrincipal'
+  }
+}
+
+// RBAC: SWA managed identity → Automation Operator (read + trigger jobs, no runbook modification)
+resource swaAutomationRole 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  name: guid(resourceGroup().id, 'swa-csp-${clientCode}', 'Automation Operator')
+  scope: resourceGroup()
+  properties: {
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'd3881f73-407a-4167-8283-e981cbba0404')
+    principalId: staticWebApp.outputs.principalId
     principalType: 'ServicePrincipal'
   }
 }
