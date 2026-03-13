@@ -1,8 +1,8 @@
 @description('Client code used in resource naming')
 param clientCode string
 
-@description('Azure region for deployment')
-param location string
+@description('Azure region for Static Web App (limited availability: westus2, centralus, eastus2, westeurope, eastasia)')
+param location string = 'eastus2'
 
 var staticWebAppName = 'swa-csp-${clientCode}'
 

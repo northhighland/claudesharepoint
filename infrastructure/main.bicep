@@ -85,7 +85,8 @@ module staticWebApp 'modules/static-web-app.bicep' = {
   name: 'static-web-app-deployment'
   params: {
     clientCode: clientCode
-    location: location
+    // SWA only available in: westus2, centralus, eastus2, westeurope, eastasia
+    location: 'eastus2'
   }
 }
 
