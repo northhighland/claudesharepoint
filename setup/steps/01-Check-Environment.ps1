@@ -37,7 +37,6 @@ function Invoke-Step01_CheckEnvironment {
     }
 
     # Display environment details
-    Write-StepBanner -Step $stepNumber -Status 'Info' -Message "Subscription:  $($prereqs.SubscriptionName) ($($prereqs.SubscriptionId))"
     Write-StepBanner -Step $stepNumber -Status 'Info' -Message "User:          $($prereqs.User)"
     Write-StepBanner -Step $stepNumber -Status 'Info' -Message "Tenant:        $($prereqs.TenantId)"
     Write-StepBanner -Step $stepNumber -Status 'Info' -Message "PowerShell:    $($PSVersionTable.PSVersion)"

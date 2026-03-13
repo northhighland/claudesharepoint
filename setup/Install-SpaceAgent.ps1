@@ -136,10 +136,64 @@ catch {
 
 # Capture environment details from the prereq check
 $prereqs = Test-Prerequisites
-$Config.SubscriptionId   = $prereqs.SubscriptionId
-$Config.SubscriptionName = $prereqs.SubscriptionName
 $Config.TenantId         = $prereqs.TenantId
 $Config.User             = $prereqs.User
+
+# ─────────────────────────────────────────────
+#  Subscription selection
+# ─────────────────────────────────────────────
+
+Write-Host ""
+Write-Host "  ── Select Subscription ──" -ForegroundColor Cyan
+Write-Host ""
+
+$subscriptions = Get-AzSubscription -TenantId $prereqs.TenantId -ErrorAction Stop | Where-Object { $_.State -eq 'Enabled' }
+
+if ($subscriptions.Count -eq 0) {
+    Write-Host "  No active subscriptions found in this tenant." -ForegroundColor Red
+    Remove-WorkDir
+    return
+}
+elseif ($subscriptions.Count -eq 1) {
+    $selectedSub = $subscriptions[0]
+    Write-Host "  Only one subscription found:" -ForegroundColor White
+    Write-Host "    $($selectedSub.Name) ($($selectedSub.Id))" -ForegroundColor Cyan
+    $confirm = Read-Host "  Use this subscription? [Y/n]"
+    if ($confirm -match '^[nN]') {
+        Write-Host "  Setup cancelled." -ForegroundColor Yellow
+        Remove-WorkDir
+        return
+    }
+}
+else {
+    Write-Host "  Available subscriptions:" -ForegroundColor White
+    Write-Host ""
+    for ($i = 0; $i -lt $subscriptions.Count; $i++) {
+        $marker = if ($subscriptions[$i].Id -eq $prereqs.SubscriptionId) { " (current)" } else { "" }
+        Write-Host "    [$($i + 1)] $($subscriptions[$i].Name)$marker" -ForegroundColor Cyan
+        Write-Host "        $($subscriptions[$i].Id)" -ForegroundColor DarkGray
+    }
+    Write-Host ""
+
+    while ($true) {
+        $choice = Read-Host "  Select subscription (1-$($subscriptions.Count))"
+        if ($choice -match '^\d+$' -and [int]$choice -ge 1 -and [int]$choice -le $subscriptions.Count) {
+            $selectedSub = $subscriptions[[int]$choice - 1]
+            break
+        }
+        Write-Host "  Invalid selection. Enter a number 1-$($subscriptions.Count)." -ForegroundColor Yellow
+    }
+}
+
+$Config.SubscriptionId   = $selectedSub.Id
+$Config.SubscriptionName = $selectedSub.Name
+
+Write-Host ""
+Write-Host "  Using: $($Config.SubscriptionName) ($($Config.SubscriptionId))" -ForegroundColor Green
+Write-Host ""
+
+# Set the active context to the selected subscription
+Set-AzContext -SubscriptionId $Config.SubscriptionId -ErrorAction Stop | Out-Null
 
 # ─────────────────────────────────────────────
 #  Interactive prompts
