@@ -7,9 +7,6 @@ param location string
 @description('Log Analytics workspace ID for diagnostics')
 param logAnalyticsWorkspaceId string = ''
 
-@description('Key Vault name for managed identity access')
-param keyVaultName string = ''
-
 var automationAccountName = 'aa-spspace-${clientCode}'
 
 resource automationAccount 'Microsoft.Automation/automationAccounts@2023-11-01' = {

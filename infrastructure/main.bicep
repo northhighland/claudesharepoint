@@ -91,7 +91,7 @@ module staticWebApp 'modules/static-web-app.bicep' = {
 
 // RBAC: Automation Account managed identity → Key Vault Secrets User
 resource kvSecretsRole 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  name: guid(keyVault.id, automation.outputs.principalId, 'Key Vault Secrets User')
+  name: guid(resourceGroup().id, keyVaultName, 'aa-spspace-${clientCode}', 'Key Vault Secrets User')
   scope: keyVault
   properties: {
     roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '4633458b-17de-408a-b874-0445c86b69e6')
@@ -102,7 +102,7 @@ resource kvSecretsRole 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
 
 // RBAC: Automation Account managed identity → Storage Table Data Contributor
 resource storageTableRole 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (enableStorageAccount) {
-  name: guid(storage.outputs.storageAccountId, automation.outputs.principalId, 'Storage Table Data Contributor')
+  name: guid(resourceGroup().id, 'stspspace${clientCode}', 'aa-spspace-${clientCode}', 'Storage Table Data Contributor')
   scope: resourceGroup()
   properties: {
     roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '0a9a7e1f-b9d0-4cc4-a60d-0319b160aaa3')
@@ -113,7 +113,7 @@ resource storageTableRole 'Microsoft.Authorization/roleAssignments@2022-04-01' =
 
 // RBAC: Automation Account managed identity → Storage Blob Data Contributor
 resource storageBlobRole 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (enableStorageAccount) {
-  name: guid(storage.outputs.storageAccountId, automation.outputs.principalId, 'Storage Blob Data Contributor')
+  name: guid(resourceGroup().id, 'stspspace${clientCode}', 'aa-spspace-${clientCode}', 'Storage Blob Data Contributor')
   scope: resourceGroup()
   properties: {
     roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'ba92f5b4-2d11-453d-a403-e96b0029c9fe')
