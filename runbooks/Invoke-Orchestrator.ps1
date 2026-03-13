@@ -112,81 +112,96 @@ function Split-IntoBatches {
     return $batches
 }
 
-function Update-JobRun {
+function Get-StorageToken {
     <#
     .SYNOPSIS
-        Create or update a JobRun record in Azure Table Storage
+        Gets an Entra ID access token for Azure Table Storage REST API.
+    #>
+    $tokenObj = Get-AzAccessToken -ResourceUrl "https://storage.azure.com/"
+    return $tokenObj.Token
+}
+
+function Write-TableEntity {
+    <#
+    .SYNOPSIS
+        Writes an entity to Azure Table Storage via REST API (InsertOrReplace).
+        Bypasses Az.Storage cmdlets which are blocked by storage firewall.
     .PARAMETER StorageAccountName
         Azure Storage account name
-    .PARAMETER RunId
-        Unique run identifier
-    .PARAMETER JobType
-        Type of job being orchestrated
-    .PARAMETER Status
-        Current status: Running, Completed, Failed
-    .PARAMETER TotalSites
-        Total number of sites to process
-    .PARAMETER TotalWaves
-        Total number of waves
-    .PARAMETER CompletedWaves
-        Number of waves completed so far
-    .PARAMETER Details
-        Optional hashtable with additional details
+    .PARAMETER TableName
+        Table name
+    .PARAMETER PartitionKey
+        Entity partition key
+    .PARAMETER RowKey
+        Entity row key
+    .PARAMETER Properties
+        Hashtable of property name/value pairs
     #>
     [CmdletBinding()]
     param(
-        [Parameter(Mandatory = $true)]
-        [string]$StorageAccountName,
+        [Parameter(Mandatory)] [string]$StorageAccountName,
+        [Parameter(Mandatory)] [string]$TableName,
+        [Parameter(Mandatory)] [string]$PartitionKey,
+        [Parameter(Mandatory)] [string]$RowKey,
+        [Parameter(Mandatory)] [hashtable]$Properties
+    )
 
-        [Parameter(Mandatory = $true)]
-        [string]$RunId,
+    $token = Get-StorageToken
+    $encodedPK = [Uri]::EscapeDataString($PartitionKey)
+    $encodedRK = [Uri]::EscapeDataString($RowKey)
+    $uri = "https://${StorageAccountName}.table.core.windows.net/${TableName}(PartitionKey='${encodedPK}',RowKey='${encodedRK}')"
 
-        [Parameter(Mandatory = $true)]
-        [string]$JobType,
+    $body = @{ PartitionKey = $PartitionKey; RowKey = $RowKey }
+    foreach ($key in $Properties.Keys) {
+        $body[$key] = $Properties[$key]
+    }
 
-        [Parameter(Mandatory = $true)]
-        [ValidateSet('Running', 'Completed', 'Failed')]
-        [string]$Status,
+    $headers = @{
+        Authorization    = "Bearer $token"
+        'Content-Type'   = 'application/json'
+        'x-ms-version'   = '2020-12-06'
+        'x-ms-date'      = (Get-Date).ToUniversalTime().ToString('R')
+        Accept           = 'application/json;odata=nometadata'
+    }
 
+    Invoke-RestMethod -Uri $uri -Method Put -Headers $headers -Body ($body | ConvertTo-Json -Depth 5 -Compress) | Out-Null
+}
+
+function Update-JobRun {
+    <#
+    .SYNOPSIS
+        Create or update a JobRun record in Azure Table Storage via REST API
+    #>
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)] [string]$StorageAccountName,
+        [Parameter(Mandatory)] [string]$RunId,
+        [Parameter(Mandatory)] [string]$JobType,
+        [Parameter(Mandatory)] [ValidateSet('Running', 'Completed', 'Failed')] [string]$Status,
         [int]$TotalSites = 0,
         [int]$TotalWaves = 0,
         [int]$CompletedWaves = 0,
         [hashtable]$Details = @{}
     )
 
-    $context = New-AzStorageContext -StorageAccountName $StorageAccountName -UseConnectedAccount
-    $tableName = 'OrchestratorJobRuns'
-
-    # Ensure table exists
-    $table = Get-AzStorageTable -Name $tableName -Context $context -ErrorAction SilentlyContinue
-    if (-not $table) {
-        $table = New-AzStorageTable -Name $tableName -Context $context
+    $properties = @{
+        Status         = $Status
+        TotalSites     = $TotalSites
+        TotalWaves     = $TotalWaves
+        CompletedWaves = $CompletedWaves
+        DryRun         = $DryRun.IsPresent
+        UpdatedAt      = (Get-Date).ToString("o")
     }
-
-    $cloudTable = $table.CloudTable
-
-    # Build entity
-    $partitionKey = $JobType
-    $rowKey = $RunId
-
-    $entity = [Microsoft.Azure.Cosmos.Table.DynamicTableEntity]::new($partitionKey, $rowKey)
-    $entity.Properties.Add('Status', [Microsoft.Azure.Cosmos.Table.EntityProperty]::GeneratePropertyForString($Status))
-    $entity.Properties.Add('TotalSites', [Microsoft.Azure.Cosmos.Table.EntityProperty]::GeneratePropertyForInt($TotalSites))
-    $entity.Properties.Add('TotalWaves', [Microsoft.Azure.Cosmos.Table.EntityProperty]::GeneratePropertyForInt($TotalWaves))
-    $entity.Properties.Add('CompletedWaves', [Microsoft.Azure.Cosmos.Table.EntityProperty]::GeneratePropertyForInt($CompletedWaves))
-    $entity.Properties.Add('DryRun', [Microsoft.Azure.Cosmos.Table.EntityProperty]::GeneratePropertyForBool($DryRun.IsPresent))
-    $entity.Properties.Add('UpdatedAt', [Microsoft.Azure.Cosmos.Table.EntityProperty]::GeneratePropertyForString((Get-Date).ToString("o")))
 
     if ($Details.Count -gt 0) {
-        $detailsJson = $Details | ConvertTo-Json -Depth 5 -Compress
-        $entity.Properties.Add('Details', [Microsoft.Azure.Cosmos.Table.EntityProperty]::GeneratePropertyForString($detailsJson))
+        $properties['Details'] = ($Details | ConvertTo-Json -Depth 5 -Compress)
     }
 
-    # InsertOrMerge to create or update
-    [Microsoft.Azure.Cosmos.Table.TableOperation]$operation = [Microsoft.Azure.Cosmos.Table.TableOperation]::InsertOrMerge($entity)
-    $cloudTable.Execute($operation) | Out-Null
+    Write-TableEntity -StorageAccountName $StorageAccountName `
+        -TableName 'JobRuns' -PartitionKey $JobType -RowKey $RunId `
+        -Properties $properties
 
-    Write-Verbose "JobRun updated: $partitionKey/$rowKey -> $Status"
+    Write-Verbose "JobRun updated: $JobType/$RunId -> $Status"
 }
 
 function Connect-SpaceAgent {

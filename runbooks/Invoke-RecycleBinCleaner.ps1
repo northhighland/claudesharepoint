@@ -87,21 +87,8 @@ $certTempPath = Join-Path $tempDir "spaceagent-recycle-$RunId.pfx"
 Write-Output "[INFO] Saving cert to: $certTempPath"
 [System.IO.File]::WriteAllBytes($certTempPath, $certBytes)
 
-# Storage context for Table Storage output (managed identity auth)
-$cloudTable = $null
-try {
-    $storageCtx = New-AzStorageContext -StorageAccountName $StorageAccountName -UseConnectedAccount
-    $tableName  = "RecycleBinResults"
-    $table      = Get-AzStorageTable -Name $tableName -Context $storageCtx -ErrorAction SilentlyContinue
-    if (-not $table) {
-        New-AzStorageTable -Name $tableName -Context $storageCtx | Out-Null
-        $table = Get-AzStorageTable -Name $tableName -Context $storageCtx
-    }
-    $cloudTable = $table.CloudTable
-    Write-Output "[INFO] Table Storage connected: $tableName"
-} catch {
-    Write-Warning "[WARN] Table Storage unavailable: $($_.Exception.Message)"
-}
+# Table Storage result table name
+$resultTableName = "RecycleBinResults"
 
 # ---------------------------------------------------------------------------
 # Helper functions
@@ -144,14 +131,23 @@ function Remove-SiteAdmin {
     }
 }
 
+function Get-StorageToken {
+    $tokenObj = Get-AzAccessToken -ResourceUrl "https://storage.azure.com/"
+    return $tokenObj.Token
+}
+
 function Write-TableResult {
     param([hashtable]$Result)
 
-    if (-not $cloudTable) { return }
-
     $rowKey = [Uri]::EscapeDataString($Result.SiteUrl)
+    $token = Get-StorageToken
+    $encodedRK = [Uri]::EscapeDataString($rowKey)
+    $encodedPK = [Uri]::EscapeDataString($RunId)
+    $uri = "https://${StorageAccountName}.table.core.windows.net/${resultTableName}(PartitionKey='${encodedPK}',RowKey='${encodedRK}')"
 
-    $properties = @{
+    $body = @{
+        PartitionKey      = $RunId
+        RowKey            = $rowKey
         SiteUrl           = $Result.SiteUrl
         SiteTitle         = $Result.SiteTitle
         ItemsFound        = $Result.ItemsFound
@@ -165,7 +161,15 @@ function Write-TableResult {
         CompletedAt       = (Get-Date -Format "o")
     }
 
-    Add-AzTableRow -Table $cloudTable -PartitionKey $RunId -RowKey $rowKey -Property $properties
+    $headers = @{
+        Authorization  = "Bearer $token"
+        'Content-Type' = 'application/json'
+        'x-ms-version' = '2020-12-06'
+        'x-ms-date'    = (Get-Date).ToUniversalTime().ToString('R')
+        Accept         = 'application/json;odata=nometadata'
+    }
+
+    Invoke-RestMethod -Uri $uri -Method Put -Headers $headers -Body ($body | ConvertTo-Json -Depth 5 -Compress) | Out-Null
 }
 
 # ---------------------------------------------------------------------------
