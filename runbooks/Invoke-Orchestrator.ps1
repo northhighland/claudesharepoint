@@ -21,8 +21,14 @@ param(
     [string]$StorageAccountName = '',
     [int]$BatchSize = 0,
     [int]$WaveSize = 30,
-    [switch]$DryRun
+    [switch]$DryRun,
+    [switch]$LiveRun
 )
+
+# Safety: DryRun is ON by default unless LiveRun is explicitly set
+if (-not $LiveRun.IsPresent) {
+    $DryRun = [switch]::new($true)
+}
 
 #region Initialization
 
@@ -109,7 +115,8 @@ function Split-IntoBatches {
         $batches += , $batch
     }
 
-    return $batches
+    # Unary comma prevents PowerShell from unwrapping single-element arrays
+    return , $batches
 }
 
 function Get-StorageToken {
