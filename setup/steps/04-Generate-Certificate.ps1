@@ -34,7 +34,7 @@ function Invoke-Step04_GenerateCertificate {
 
     #region Generate certificate with openssl
 
-    $certDir = Join-Path ([System.IO.Path]::GetTempPath()) "spspace-cert-$(Get-Date -Format 'yyyyMMddHHmmss')"
+    $certDir = Join-Path ([System.IO.Path]::GetTempPath()) "csp-cert-$(Get-Date -Format 'yyyyMMddHHmmss')"
     New-Item -ItemType Directory -Path $certDir -Force | Out-Null
 
     $keyPath  = Join-Path $certDir 'spaceagent.key'

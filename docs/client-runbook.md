@@ -89,8 +89,8 @@ Automation run logs:
 Settings are managed through the Azure Automation Account variables. To change them:
 
 1. Open the **Azure Portal** (https://portal.azure.com).
-2. Navigate to your resource group (named `rg-spspace-{your-client-code}`).
-3. Open the **Automation Account** (named `aa-spspace-{your-client-code}`).
+2. Navigate to your resource group (named `rg-csp-{your-client-code}`).
+3. Open the **Automation Account** (named `aa-csp-{your-client-code}`).
 4. Go to **Shared Resources > Variables**.
 
 ### Key Variables
@@ -148,8 +148,8 @@ $params = @{
 }
 
 Start-AzAutomationRunbook `
-    -AutomationAccountName "aa-spspace-{your-client-code}" `
-    -ResourceGroupName "rg-spspace-{your-client-code}" `
+    -AutomationAccountName "aa-csp-{your-client-code}" `
+    -ResourceGroupName "rg-csp-{your-client-code}" `
     -Name "Invoke-Orchestrator" `
     -Parameters $params
 ```
@@ -282,12 +282,12 @@ If you need to immediately stop all automated runs:
 ```powershell
 # Disable all schedules at once
 Get-AzAutomationSchedule `
-    -AutomationAccountName "aa-spspace-{your-client-code}" `
-    -ResourceGroupName "rg-spspace-{your-client-code}" |
+    -AutomationAccountName "aa-csp-{your-client-code}" `
+    -ResourceGroupName "rg-csp-{your-client-code}" |
     ForEach-Object {
         Set-AzAutomationSchedule `
-            -AutomationAccountName "aa-spspace-{your-client-code}" `
-            -ResourceGroupName "rg-spspace-{your-client-code}" `
+            -AutomationAccountName "aa-csp-{your-client-code}" `
+            -ResourceGroupName "rg-csp-{your-client-code}" `
             -Name $_.Name `
             -IsEnabled $false
     }
@@ -308,7 +308,7 @@ To completely remove the claudesharepoint:
 Connect-AzAccount
 
 # Delete the resource group and all contained resources
-Remove-AzResourceGroup -Name "rg-spspace-{your-client-code}" -Force
+Remove-AzResourceGroup -Name "rg-csp-{your-client-code}" -Force
 ```
 
 This removes the Automation Account, Key Vault, Storage Account, Static Web App, and all associated data.

@@ -17,7 +17,7 @@ Complete these items **before** the kickoff call:
 - [ ] You have the client's SharePoint admin URL (e.g., `https://contoso-admin.sharepoint.com`)
 - [ ] You have an email address for automated alert notifications
 - [ ] You have confirmed the Azure region preference (default: `eastus`)
-- [ ] Agree on a client code (3-10 lowercase alphanumeric characters, e.g., `contoso`)
+- [ ] Agree on a client code (2-10 lowercase alphanumeric characters, e.g., `contoso`)
 - [ ] Calendar invite includes a screen-sharing link
 
 ---

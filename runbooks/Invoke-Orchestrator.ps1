@@ -6,7 +6,7 @@
 # Usage:
 #   Invoke-Orchestrator -JobType VersionCleanup -DryRun
 #   Invoke-Orchestrator -JobType QuotaManager -WaveSize 20
-#   Invoke-Orchestrator -JobType StaleSiteDetector -KeyVaultName "kv-spspace-client" -StorageAccountName "stspspaceclient"
+#   Invoke-Orchestrator -JobType StaleSiteDetector -KeyVaultName "kv-csp-client" -StorageAccountName "stcspclient"
 #
 # Requires: Az.Accounts, Az.Automation, Az.KeyVault, Az.Storage, PnP.PowerShell
 

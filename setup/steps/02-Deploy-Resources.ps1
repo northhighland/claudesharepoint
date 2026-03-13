@@ -23,7 +23,7 @@ function Invoke-Step02_DeployResources {
 
     #region Download Bicep files
 
-    $tempDir = Join-Path ([System.IO.Path]::GetTempPath()) "spspace-bicep-$(Get-Date -Format 'yyyyMMddHHmmss')"
+    $tempDir = Join-Path ([System.IO.Path]::GetTempPath()) "csp-bicep-$(Get-Date -Format 'yyyyMMddHHmmss')"
     $modulesDir = Join-Path $tempDir 'modules'
 
     try {
@@ -90,7 +90,7 @@ function Invoke-Step02_DeployResources {
     #region Deploy Bicep template
 
     $templatePath = Join-Path $tempDir 'main.bicep'
-    $deploymentName = "spspace-$($Config.ClientCode)-$(Get-Date -Format 'yyyyMMdd-HHmmss')"
+    $deploymentName = "csp-$($Config.ClientCode)-$(Get-Date -Format 'yyyyMMdd-HHmmss')"
 
     $deployParams = @{
         clientCode           = $Config.ClientCode
@@ -105,11 +105,11 @@ function Invoke-Step02_DeployResources {
 
     Write-StepBanner -Step $stepNumber -Status 'Info' -Message "Starting deployment: $deploymentName"
     Write-StepBanner -Step $stepNumber -Status 'Info' -Message 'Resources to create:'
-    Write-StepBanner -Step $stepNumber -Status 'Info' -Message "  Key Vault:           kv-spspace-$($Config.ClientCode)"
-    Write-StepBanner -Step $stepNumber -Status 'Info' -Message "  Automation Account:  aa-spspace-$($Config.ClientCode)"
-    Write-StepBanner -Step $stepNumber -Status 'Info' -Message "  Storage Account:     stspspace$($Config.ClientCode)"
-    Write-StepBanner -Step $stepNumber -Status 'Info' -Message "  Static Web App:      swa-spspace-$($Config.ClientCode)"
-    Write-StepBanner -Step $stepNumber -Status 'Info' -Message "  Log Analytics:       log-spspace-$($Config.ClientCode)"
+    Write-StepBanner -Step $stepNumber -Status 'Info' -Message "  Key Vault:           kv-csp-$($Config.ClientCode)"
+    Write-StepBanner -Step $stepNumber -Status 'Info' -Message "  Automation Account:  aa-csp-$($Config.ClientCode)"
+    Write-StepBanner -Step $stepNumber -Status 'Info' -Message "  Storage Account:     stcsp$($Config.ClientCode)"
+    Write-StepBanner -Step $stepNumber -Status 'Info' -Message "  Static Web App:      swa-csp-$($Config.ClientCode)"
+    Write-StepBanner -Step $stepNumber -Status 'Info' -Message "  Log Analytics:       log-csp-$($Config.ClientCode)"
     Write-StepBanner -Step $stepNumber -Status 'Info' -Message 'This may take 3-5 minutes...'
 
     try {
@@ -150,9 +150,9 @@ function Invoke-Step02_DeployResources {
     }
     else {
         Write-StepBanner -Step $stepNumber -Status 'Warn' -Message 'No deployment outputs captured. Deriving resource names from convention.'
-        $Config.KeyVaultName          = "kv-spspace-$($Config.ClientCode)"
-        $Config.AutomationAccountName = "aa-spspace-$($Config.ClientCode)"
-        $Config.StorageAccountName    = "stspspace$($Config.ClientCode)"
+        $Config.KeyVaultName          = "kv-csp-$($Config.ClientCode)"
+        $Config.AutomationAccountName = "aa-csp-$($Config.ClientCode)"
+        $Config.StorageAccountName    = "stcsp$($Config.ClientCode)"
         $Config.StaticWebAppHostname  = ''
         $Config.AutomationPrincipalId = ''
     }

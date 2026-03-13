@@ -10,12 +10,12 @@ One-command deployment via Azure Cloud Shell. Client pastes a one-liner, answers
 ## Entry Point
 
 ```powershell
-irm https://raw.githubusercontent.com/northhighland/space-agent/main/setup/Install-SpaceAgent.ps1 | iex
+irm https://raw.githubusercontent.com/northhighland/claudesharepoint/main/setup/Install-SpaceAgent.ps1 | iex
 ```
 
 ## Interactive Prompts
 
-- Client code (3-10 chars, e.g. "contoso")
+- Client code (2-10 chars, e.g. "contoso")
 - Azure region (default: eastus)
 - Notification email
 - SharePoint admin URL

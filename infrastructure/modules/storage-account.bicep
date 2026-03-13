@@ -5,7 +5,7 @@ param clientCode string
 param location string
 
 // Storage account names: 3-24 chars, lowercase alphanumeric only
-var storageAccountName = 'stspspace${clientCode}'
+var storageAccountName = 'stcsp${clientCode}'
 
 resource storageAccount 'Microsoft.Storage/storageAccounts@2023-05-01' = {
   name: storageAccountName

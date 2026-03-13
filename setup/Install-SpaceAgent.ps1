@@ -205,14 +205,14 @@ Write-Host ""
 
 # Client code
 while ($true) {
-    $clientCode = Read-Host "  Client code (3-10 chars, lowercase alphanumeric, e.g. 'contoso')"
+    $clientCode = Read-Host "  Client code (2-10 chars, lowercase alphanumeric, e.g. 'contoso')"
     $clientCode = $clientCode.Trim().ToLower()
 
-    if ($clientCode -match '^[a-z0-9]{3,10}$') {
+    if ($clientCode -match '^[a-z0-9]{2,10}$') {
         break
     }
 
-    Write-Host "  Invalid. Must be 3-10 lowercase letters/numbers only." -ForegroundColor Yellow
+    Write-Host "  Invalid. Must be 2-10 lowercase letters/numbers only." -ForegroundColor Yellow
 }
 
 # Azure region
@@ -251,7 +251,7 @@ $Config.ClientCode         = $clientCode
 $Config.Location           = $location
 $Config.NotificationEmail  = $notificationEmail
 $Config.SharePointAdminUrl = $spAdminUrl
-$Config.ResourceGroupName  = "rg-spspace-$clientCode"
+$Config.ResourceGroupName  = "rg-csp-$clientCode"
 
 # Confirm
 Write-Host ""

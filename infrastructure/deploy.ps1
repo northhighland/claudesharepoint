@@ -18,8 +18,8 @@
     Resource group name (created if needed).
 
 .PARAMETER ClientCode
-    Short client identifier (3-10 lowercase alphanumeric).
-    Used in resource naming: {type}-spspace-{clientCode}
+    Short client identifier (2-10 lowercase alphanumeric).
+    Used in resource naming: {type}-csp-{clientCode}
 
 .PARAMETER Location
     Azure region (e.g., eastus, westus2).
@@ -31,7 +31,7 @@
     Skip prerequisite validation.
 
 .EXAMPLE
-    ./deploy.ps1 -SubscriptionId "..." -ResourceGroupName "rg-spspace-nh" -ClientCode "nh" -Location "eastus"
+    ./deploy.ps1 -SubscriptionId "..." -ResourceGroupName "rg-csp-nh" -ClientCode "nh" -Location "eastus"
 #>
 
 #Requires -Version 7.0
@@ -47,7 +47,7 @@ param(
     [string]$ResourceGroupName,
 
     [Parameter(Mandatory = $true)]
-    [ValidatePattern('^[a-z0-9]{3,10}$')]
+    [ValidatePattern('^[a-z0-9]{2,10}$')]
     [string]$ClientCode,
 
     [Parameter(Mandatory = $true)]
@@ -147,19 +147,19 @@ Write-Host ""
 Write-Host "=== Infrastructure Deployment ===" -ForegroundColor Cyan
 Write-Host ""
 Write-Host "Resources to create:" -ForegroundColor White
-Write-Host "  Automation Account:  aa-spspace-$ClientCode"
-Write-Host "  Key Vault:           kv-spspace-$ClientCode"
-Write-Host "  Storage Account:     stspspace$ClientCode"
-Write-Host "  Static Web App:      swa-spspace-$ClientCode"
-Write-Host "  Log Analytics:       log-spspace-$ClientCode"
+Write-Host "  Automation Account:  aa-csp-$ClientCode"
+Write-Host "  Key Vault:           kv-csp-$ClientCode"
+Write-Host "  Storage Account:     stcsp$ClientCode"
+Write-Host "  Static Web App:      swa-csp-$ClientCode"
+Write-Host "  Log Analytics:       log-csp-$ClientCode"
 if ($AlertRecipients) {
-    Write-Host "  Action Group:        ag-spspace-$ClientCode"
+    Write-Host "  Action Group:        ag-csp-$ClientCode"
     Write-Host "  Alert Recipients:    $AlertRecipients"
 }
 Write-Host ""
 
 $templatePath = Join-Path $PSScriptRoot 'main.bicep'
-$deploymentName = "spspace-$ClientCode-$(Get-Date -Format 'yyyyMMdd-HHmmss')"
+$deploymentName = "csp-$ClientCode-$(Get-Date -Format 'yyyyMMdd-HHmmss')"
 
 $deployParams = @{
     clientCode         = $ClientCode
@@ -195,9 +195,9 @@ Write-Host ""
 Write-Host "=== Post-Deployment Validation ===" -ForegroundColor Cyan
 
 $resources = @(
-    @{ Type = 'Automation Account'; Name = "aa-spspace-$ClientCode" }
-    @{ Type = 'Key Vault'; Name = "kv-spspace-$ClientCode" }
-    @{ Type = 'Storage Account'; Name = "stspspace$ClientCode" }
+    @{ Type = 'Automation Account'; Name = "aa-csp-$ClientCode" }
+    @{ Type = 'Key Vault'; Name = "kv-csp-$ClientCode" }
+    @{ Type = 'Storage Account'; Name = "stcsp$ClientCode" }
 )
 
 foreach ($r in $resources) {
@@ -235,12 +235,12 @@ if ($deployment.Outputs) {
 Write-Host ""
 Write-Host "Next Steps:" -ForegroundColor Yellow
 Write-Host "  1. Upload SharePoint certificate to Key Vault:"
-Write-Host "     az keyvault certificate import --vault-name kv-spspace-$ClientCode --name sharepoint-cert --file cert.pfx"
+Write-Host "     az keyvault certificate import --vault-name kv-csp-$ClientCode --name sharepoint-cert --file cert.pfx"
 Write-Host ""
 Write-Host "  2. Set SharePoint secrets:"
-Write-Host "     az keyvault secret set --vault-name kv-spspace-$ClientCode --name SPClientId --value 'your-client-id'"
-Write-Host "     az keyvault secret set --vault-name kv-spspace-$ClientCode --name SPTenantId --value 'your-tenant-id'"
-Write-Host "     az keyvault secret set --vault-name kv-spspace-$ClientCode --name SPAdminUrl --value 'https://northhighland-admin.sharepoint.com'"
+Write-Host "     az keyvault secret set --vault-name kv-csp-$ClientCode --name SPClientId --value 'your-client-id'"
+Write-Host "     az keyvault secret set --vault-name kv-csp-$ClientCode --name SPTenantId --value 'your-tenant-id'"
+Write-Host "     az keyvault secret set --vault-name kv-csp-$ClientCode --name SPAdminUrl --value 'https://northhighland-admin.sharepoint.com'"
 Write-Host ""
 Write-Host "  3. Import runbooks to Automation Account"
 Write-Host "  4. Deploy dashboard to Static Web App"

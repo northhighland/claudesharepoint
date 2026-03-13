@@ -129,15 +129,15 @@ pwsh ./infrastructure/deploy.ps1 \
 
 ## Resource Naming Convention
 
-All Azure resources follow: `{type}-spspace-{clientCode}`
+All Azure resources follow: `{type}-csp-{clientCode}`
 
 | Resource | Example |
 |---|---|
-| Automation Account | `aa-spspace-contoso` |
-| Key Vault | `kv-spspace-contoso` |
-| Storage Account | `stspspacecontoso` |
-| Static Web App | `swa-spspace-contoso` |
-| Log Analytics | `log-spspace-contoso` |
+| Automation Account | `aa-csp-contoso` |
+| Key Vault | `kv-csp-contoso` |
+| Storage Account | `stcspcontoso` |
+| Static Web App | `swa-csp-contoso` |
+| Log Analytics | `log-csp-contoso` |
 
 ---
 

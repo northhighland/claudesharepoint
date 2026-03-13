@@ -41,12 +41,12 @@ pwsh ./runbooks/Invoke-Orchestrator.ps1 -JobType VersionCleanup -DryRun
 - Use `-DryRun` flag for safe testing of any runbook
 
 ## Resource Naming
-Pattern: `{type}-spspace-{clientCode}`
-- Automation Account: `aa-spspace-nh`
-- Key Vault: `kv-spspace-nh`
-- Storage Account: `stspspacenh`
-- Static Web App: `swa-spspace-nh`
-- Log Analytics: `log-spspace-nh`
+Pattern: `{type}-csp-{clientCode}`
+- Automation Account: `aa-csp-nh`
+- Key Vault: `kv-csp-nh`
+- Storage Account: `stcspnh`
+- Static Web App: `swa-csp-nh`
+- Log Analytics: `log-csp-nh`
 
 ## Azure Table Storage Tables
 - `JobRuns` — orchestrator job tracking

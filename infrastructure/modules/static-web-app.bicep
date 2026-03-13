@@ -4,7 +4,7 @@ param clientCode string
 @description('Azure region for deployment')
 param location string
 
-var staticWebAppName = 'swa-spspace-${clientCode}'
+var staticWebAppName = 'swa-csp-${clientCode}'
 
 resource staticWebApp 'Microsoft.Web/staticSites@2023-12-01' = {
   name: staticWebAppName
@@ -25,8 +25,8 @@ resource authConfig 'Microsoft.Web/staticSites/config@2023-12-01' = {
   parent: staticWebApp
   name: 'appsettings'
   properties: {
-    AZURE_STORAGE_ACCOUNT: 'stspspace${clientCode}'
-    AZURE_AUTOMATION_ACCOUNT: 'aa-spspace-${clientCode}'
+    AZURE_STORAGE_ACCOUNT: 'stcsp${clientCode}'
+    AZURE_AUTOMATION_ACCOUNT: 'aa-csp-${clientCode}'
   }
 }
 

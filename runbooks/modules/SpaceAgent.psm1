@@ -44,7 +44,7 @@ function Connect-SpaceAgent {
     .OUTPUTS
         Hashtable with ClientId, TenantId, CertificatePath, SiteUrl for reuse
     .EXAMPLE
-        $conn = Connect-SpaceAgent -KeyVaultName 'kv-spspace' -ClientId $clientId `
+        $conn = Connect-SpaceAgent -KeyVaultName 'kv-csp' -ClientId $clientId `
             -TenantId $tenantId -SiteUrl 'https://contoso-admin.sharepoint.com'
     #>
     [CmdletBinding()]
@@ -582,7 +582,7 @@ function Write-TableResult {
     .PARAMETER StorageContext
         Optional pre-created storage context. If not provided, creates one via managed identity.
     .EXAMPLE
-        Write-TableResult -StorageAccountName 'stspspace' -TableName 'SiteResults' `
+        Write-TableResult -StorageAccountName 'stcsp' -TableName 'SiteResults' `
             -PartitionKey '2025-02-05' -RowKey 'https://contoso.sharepoint.com/sites/hr' `
             -Properties @{
                 SiteTitle = 'HR Site'
@@ -688,7 +688,7 @@ function Update-JobRun {
     .PARAMETER StorageContext
         Optional pre-created storage context
     .EXAMPLE
-        Update-JobRun -StorageAccountName 'stspspace' -JobType 'Assessment' `
+        Update-JobRun -StorageAccountName 'stcsp' -JobType 'Assessment' `
             -RunId '20250205_143000' -Status 'Running' -Properties @{
                 SitesTotal = 500
                 SitesProcessed = 150
