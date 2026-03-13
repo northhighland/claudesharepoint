@@ -43,11 +43,26 @@ param(
 # ---------------------------------------------------------------------------
 $ErrorActionPreference = "Stop"
 
-$modulePath = Join-Path $PSScriptRoot "modules" "SpaceAgent.psm1"
-if (Test-Path $modulePath) {
-    Import-Module $modulePath -Force
-} else {
-    Write-Warning "SpaceAgent module not found at $modulePath - using inline helpers"
+# Import PnP.PowerShell (required for SharePoint operations)
+try {
+    Import-Module PnP.PowerShell -Force -ErrorAction Stop
+    Write-Output "[INFO] Loaded PnP.PowerShell module"
+} catch {
+    Write-Warning "PnP.PowerShell not available: $($_.Exception.Message)"
+}
+
+# Import SpaceAgent module (optional — worker has inline fallbacks)
+$moduleLoaded = $false
+if ($PSScriptRoot) {
+    $modulePath = Join-Path $PSScriptRoot "modules" "SpaceAgent.psm1"
+    if (Test-Path $modulePath) {
+        Import-Module $modulePath -Force; $moduleLoaded = $true
+        Write-Output "[INFO] Loaded SpaceAgent module from: $modulePath"
+    }
+}
+if (-not $moduleLoaded) {
+    try { Import-Module SpaceAgent -Force -ErrorAction Stop; $moduleLoaded = $true; Write-Output "[INFO] Loaded SpaceAgent from Automation modules" }
+    catch { Write-Output "[INFO] SpaceAgent module not available — using inline helpers" }
 }
 
 # Authenticate with managed identity
@@ -55,25 +70,33 @@ Connect-AzAccount -Identity | Out-Null
 Write-Output "[INFO] Authenticated with managed identity"
 
 # Retrieve SPO credentials from Key Vault
-$certSecret = Get-AzKeyVaultSecret -VaultName $KeyVaultName -Name "SPOCertificate" -AsPlainText
-$clientId   = Get-AzKeyVaultSecret -VaultName $KeyVaultName -Name "SPOClientId"    -AsPlainText
-$tenantId   = Get-AzKeyVaultSecret -VaultName $KeyVaultName -Name "TenantId"       -AsPlainText
-$adminUrl   = Get-AzKeyVaultSecret -VaultName $KeyVaultName -Name "SPOAdminUrl"    -AsPlainText
+$certSecret = Get-AzKeyVaultSecret -VaultName $KeyVaultName -Name "sharepoint-cert" -AsPlainText
+$clientId   = Get-AzKeyVaultSecret -VaultName $KeyVaultName -Name "SPClientId"      -AsPlainText
+$tenantId   = Get-AzKeyVaultSecret -VaultName $KeyVaultName -Name "SPTenantId"      -AsPlainText
+$adminUrl   = Get-AzKeyVaultSecret -VaultName $KeyVaultName -Name "SPAdminUrl"      -AsPlainText
 
-# Build temp certificate file for PnP
+# Build temp certificate file for PnP (fallback chain for temp dir)
 $certBytes = [Convert]::FromBase64String($certSecret)
-$certTempPath = Join-Path ([System.IO.Path]::GetTempPath()) "spaceagent-stale-$RunId.pfx"
+$tempDir = if ($env:TEMP) { $env:TEMP } elseif ($env:RUNNER_TEMP) { $env:RUNNER_TEMP } else { '/tmp' }
+$certTempPath = Join-Path $tempDir "spaceagent-stale-$RunId.pfx"
+Write-Output "[INFO] Saving cert to: $certTempPath"
 [System.IO.File]::WriteAllBytes($certTempPath, $certBytes)
 
-# Storage context for Table Storage output
-$storageCtx = (Get-AzStorageAccount -ResourceGroupName (Get-AutomationVariable -Name "ResourceGroupName") -Name $StorageAccountName).Context
-$tableName  = "StaleSiteRecommendations"
-$table      = Get-AzStorageTable -Name $tableName -Context $storageCtx -ErrorAction SilentlyContinue
-if (-not $table) {
-    New-AzStorageTable -Name $tableName -Context $storageCtx | Out-Null
-    $table = Get-AzStorageTable -Name $tableName -Context $storageCtx
+# Storage context for Table Storage output (managed identity auth)
+$cloudTable = $null
+try {
+    $storageCtx = New-AzStorageContext -StorageAccountName $StorageAccountName -UseConnectedAccount
+    $tableName  = "StaleSiteRecommendations"
+    $table      = Get-AzStorageTable -Name $tableName -Context $storageCtx -ErrorAction SilentlyContinue
+    if (-not $table) {
+        New-AzStorageTable -Name $tableName -Context $storageCtx | Out-Null
+        $table = Get-AzStorageTable -Name $tableName -Context $storageCtx
+    }
+    $cloudTable = $table.CloudTable
+    Write-Output "[INFO] Table Storage connected: $tableName"
+} catch {
+    Write-Warning "[WARN] Table Storage unavailable: $($_.Exception.Message)"
 }
-$cloudTable = $table.CloudTable
 
 # Staleness scoring weights (from config/defaults.json)
 $ScoreWeights = @{
@@ -341,6 +364,8 @@ function Get-StalenessCategory {
 
 function Write-TableResult {
     param([hashtable]$Result)
+
+    if (-not $cloudTable) { return }
 
     $rowKey = [Uri]::EscapeDataString($Result.SiteUrl)
 

@@ -4,6 +4,7 @@ param clientCode string
 @description('Azure region for deployment')
 param location string
 
+
 // Storage account names: 3-24 chars, lowercase alphanumeric only
 var storageAccountName = 'stcsp${clientCode}'
 
@@ -19,9 +20,14 @@ resource storageAccount 'Microsoft.Storage/storageAccounts@2023-05-01' = {
     supportsHttpsTrafficOnly: true
     minimumTlsVersion: 'TLS1_2'
     allowBlobPublicAccess: false
+    allowSharedKeyAccess: false
     networkAcls: {
-      defaultAction: 'Allow'
+      defaultAction: 'Deny'
       bypass: 'AzureServices'
+      ipRules: [
+        { value: '4.59.15.66', action: 'Allow' }
+        { value: '8.31.229.4', action: 'Allow' }
+      ]
     }
   }
 }
@@ -48,10 +54,13 @@ resource tables 'Microsoft.Storage/storageAccounts/tableServices/tables@2023-05-
   }
 ]
 
-// Blob service for reports
+// Blob service for reports (versioning required by NH policy)
 resource blobService 'Microsoft.Storage/storageAccounts/blobServices@2023-05-01' = {
   parent: storageAccount
   name: 'default'
+  properties: {
+    isVersioningEnabled: true
+  }
 }
 
 resource reportsContainer 'Microsoft.Storage/storageAccounts/blobServices/containers@2023-05-01' = {

@@ -23,37 +23,16 @@ resource automationAccount 'Microsoft.Automation/automationAccounts@2023-11-01' 
   }
 }
 
-// PowerShell modules required by runbooks
-var requiredModules = [
-  {
-    name: 'PnP.PowerShell'
-    uri: 'https://www.powershellgallery.com/api/v2/package/PnP.PowerShell'
-  }
-  {
-    name: 'Az.Accounts'
-    uri: 'https://www.powershellgallery.com/api/v2/package/Az.Accounts'
-  }
-  {
-    name: 'Az.KeyVault'
-    uri: 'https://www.powershellgallery.com/api/v2/package/Az.KeyVault'
-  }
-  {
-    name: 'Az.Storage'
-    uri: 'https://www.powershellgallery.com/api/v2/package/Az.Storage'
-  }
-]
-
-resource modules 'Microsoft.Automation/automationAccounts/modules@2023-11-01' = [
-  for module in requiredModules: {
-    parent: automationAccount
-    name: module.name
-    properties: {
-      contentLink: {
-        uri: module.uri
-      }
+// PnP.PowerShell for PS 7.2 runtime (Az modules are sandbox built-ins — do NOT install custom copies)
+resource pnpModule 'Microsoft.Automation/automationAccounts/powershell72Modules@2023-11-01' = {
+  parent: automationAccount
+  name: 'PnP.PowerShell'
+  properties: {
+    contentLink: {
+      uri: 'https://www.powershellgallery.com/api/v2/package/PnP.PowerShell/2.12.0'
     }
   }
-]
+}
 
 // Automation Variables (configuration)
 var automationVariables = [
@@ -68,6 +47,9 @@ var automationVariables = [
   { name: 'StalenessThresholdDays', value: '180', description: 'Days of inactivity for staleness scoring' }
   { name: 'TeamsWebhookUrl', value: '', description: 'Teams incoming webhook URL for notifications' }
   { name: 'NotificationEmail', value: '', description: 'Email for weekly summary and critical alerts' }
+  { name: 'KeyVaultName', value: 'kv-csp-${clientCode}', description: 'Key Vault name for SPO credentials' }
+  { name: 'StorageAccountName', value: 'stcsp${clientCode}', description: 'Storage account name for Table Storage results' }
+  { name: 'AutomationAccountName', value: 'aa-csp-${clientCode}', description: 'Automation account name for child runbook dispatch' }
 ]
 
 resource variables 'Microsoft.Automation/automationAccounts/variables@2023-11-01' = [
@@ -81,6 +63,17 @@ resource variables 'Microsoft.Automation/automationAccounts/variables@2023-11-01
     }
   }
 ]
+
+// ResourceGroupName variable (uses Bicep function, can't be in the array)
+resource resourceGroupNameVar 'Microsoft.Automation/automationAccounts/variables@2023-11-01' = {
+  parent: automationAccount
+  name: 'ResourceGroupName'
+  properties: {
+    value: '"${resourceGroup().name}"'
+    description: 'Resource group name for storage account lookups'
+    isEncrypted: false
+  }
+}
 
 // Schedules
 resource versionCleanupSchedule 'Microsoft.Automation/automationAccounts/schedules@2023-11-01' = {

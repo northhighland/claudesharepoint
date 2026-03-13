@@ -123,6 +123,18 @@ resource storageBlobRole 'Microsoft.Authorization/roleAssignments@2022-04-01' = 
   }
 }
 
+// RBAC: Automation Account managed identity → Automation Contributor (self-dispatch child runbooks)
+// Scoped to resource group since module outputs can't be used as scope
+resource automationContributorRole 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  name: guid(resourceGroup().id, 'aa-csp-${clientCode}', 'Automation Contributor')
+  scope: resourceGroup()
+  properties: {
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'f353d9bd-d4a6-484e-a77a-8050b599b867')
+    principalId: automation.outputs.principalId
+    principalType: 'ServicePrincipal'
+  }
+}
+
 // Alert on automation job failures
 resource actionGroup 'Microsoft.Insights/actionGroups@2023-01-01' = if (!empty(alertRecipients)) {
   name: 'ag-csp-${clientCode}'
@@ -184,8 +196,8 @@ output keyVaultName string = keyVault.name
 output keyVaultUri string = keyVault.properties.vaultUri
 output automationAccountName string = automation.outputs.automationAccountName
 output automationAccountPrincipalId string = automation.outputs.principalId
-output storageAccountName string = enableStorageAccount ? storage.outputs.storageAccountName : ''
-output storageTableEndpoint string = enableStorageAccount ? storage.outputs.tableEndpoint : ''
-output storageBlobEndpoint string = enableStorageAccount ? storage.outputs.blobEndpoint : ''
+output storageAccountName string = enableStorageAccount ? storage!.outputs.storageAccountName : ''
+output storageTableEndpoint string = enableStorageAccount ? storage!.outputs.tableEndpoint : ''
+output storageBlobEndpoint string = enableStorageAccount ? storage!.outputs.blobEndpoint : ''
 output staticWebAppHostname string = staticWebApp.outputs.defaultHostname
 output logAnalyticsWorkspaceName string = enableLogAnalytics ? logAnalytics.name : ''

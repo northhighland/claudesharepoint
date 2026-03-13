@@ -40,18 +40,40 @@ Write-Output "DryRun:   $DryRun"
 Write-Output "Started:  $startTime"
 Write-Output ""
 
-# Import SpaceAgent module
-$modulePath = Join-Path $PSScriptRoot "modules" "SpaceAgent.psm1"
-if (-not (Test-Path $modulePath)) {
-    # Fallback for Azure Automation (module may be in different location)
-    $modulePath = Join-Path (Split-Path $PSScriptRoot -Parent) "modules" "SpaceAgent.psm1"
+# Import PnP.PowerShell (required for SharePoint operations)
+try {
+    Import-Module PnP.PowerShell -Force -ErrorAction Stop
+    Write-Output "Loaded PnP.PowerShell module"
+} catch {
+    Write-Warning "PnP.PowerShell not available: $($_.Exception.Message)"
 }
-if (Test-Path $modulePath) {
-    Import-Module $modulePath -Force
-    Write-Output "Loaded SpaceAgent module from: $modulePath"
+
+# Import SpaceAgent module (optional — orchestrator has inline fallbacks)
+$moduleLoaded = $false
+if ($PSScriptRoot) {
+    $modulePath = Join-Path $PSScriptRoot "modules" "SpaceAgent.psm1"
+    if (Test-Path $modulePath) {
+        Import-Module $modulePath -Force; $moduleLoaded = $true
+        Write-Output "Loaded SpaceAgent module from: $modulePath"
+    }
 }
-else {
-    throw "SpaceAgent module not found. Expected at: $modulePath"
+if (-not $moduleLoaded) {
+    try { Import-Module SpaceAgent -Force -ErrorAction Stop; $moduleLoaded = $true; Write-Output "Loaded SpaceAgent from Automation modules" }
+    catch { Write-Output "SpaceAgent module not available — using inline functions" }
+}
+
+# Inline fallback: Get-SpaceAgentConfig
+if (-not $moduleLoaded) {
+    function Get-SpaceAgentConfig {
+        $config = @{ DisableSchedule = $false; ExclusionPatterns = @(); ExpireAfterDays = 90; MaxMajorVersions = 100; BatchSize = 50 }
+        try { $d = Get-AutomationVariable -Name 'DisableSchedule' -EA SilentlyContinue; if ($null -ne $d) { $config.DisableSchedule = ($d -eq $true -or $d -eq 'true' -or $d -eq 'True') } } catch {}
+        try { $p = Get-AutomationVariable -Name 'ExclusionPatterns' -EA SilentlyContinue; if ($p) { $config.ExclusionPatterns = @($p -split ',' | ForEach-Object { $_.Trim() } | Where-Object { $_ }) } } catch {}
+        try { $e = Get-AutomationVariable -Name 'ExpireAfterDays' -EA SilentlyContinue; if ($null -ne $e) { $config.ExpireAfterDays = [int]$e } } catch {}
+        try { $m = Get-AutomationVariable -Name 'MaxMajorVersions' -EA SilentlyContinue; if ($null -ne $m) { $config.MaxMajorVersions = [int]$m } } catch {}
+        try { $b = Get-AutomationVariable -Name 'BatchSize' -EA SilentlyContinue; if ($null -ne $b) { $config.BatchSize = [int]$b } } catch {}
+        return $config
+    }
+    function Initialize-TokenRefresh { }
 }
 
 #endregion
@@ -183,12 +205,18 @@ function Connect-SpaceAgent {
         [string]$KeyVaultName
     )
 
-    Write-Output "Retrieving certificate from Key Vault..."
-    $certPath = Get-CertificateFromKeyVault -KeyVaultName $KeyVaultName
-
     $clientId = Get-AzKeyVaultSecret -VaultName $KeyVaultName -Name "SPClientId" -AsPlainText
     $tenantId = Get-AzKeyVaultSecret -VaultName $KeyVaultName -Name "SPTenantId" -AsPlainText
     $adminUrl = Get-AzKeyVaultSecret -VaultName $KeyVaultName -Name "SPAdminUrl" -AsPlainText
+
+    # Retrieve certificate from Key Vault and save to temp file
+    Write-Output "Retrieving certificate from Key Vault..."
+    $secret = Get-AzKeyVaultSecret -VaultName $KeyVaultName -Name "sharepoint-cert" -AsPlainText -ErrorAction Stop
+    $certBytes = [Convert]::FromBase64String($secret)
+    $tempDir = if ($env:TEMP) { $env:TEMP } elseif ($env:RUNNER_TEMP) { $env:RUNNER_TEMP } else { '/tmp' }
+    $certPath = Join-Path $tempDir "sharepoint-cert.pfx"
+    Write-Output "Saving cert to: $certPath (tempDir=$tempDir)"
+    [System.IO.File]::WriteAllBytes($certPath, $certBytes)
 
     Write-Output "Connecting to SharePoint admin: $adminUrl"
     Connect-PnPOnline -Url $adminUrl -ClientId $clientId -Tenant $tenantId -CertificatePath $certPath -ErrorAction Stop
@@ -228,11 +256,28 @@ function Get-AllSites {
         [int]$BatchSize = 0
     )
 
-    $sites = Get-FilteredSites -AdminUrl $AdminUrl -ExclusionPatterns $ExclusionPatterns
+    $sites = Get-PnPTenantSite -IncludeOneDriveSites:$false |
+        Where-Object {
+            $_.Template -notlike "*REDIRECT*" -and
+            $_.Url -notlike "*-my.sharepoint.com*"
+        } |
+        Select-Object Url, Title, StorageUsageCurrent, Template
+
+    # Apply exclusion patterns
+    if ($ExclusionPatterns.Count -gt 0) {
+        $sites = $sites | Where-Object {
+            $url = $_.Url
+            $excluded = $false
+            foreach ($pattern in $ExclusionPatterns) {
+                if ($url -like "*$pattern*") { $excluded = $true; break }
+            }
+            -not $excluded
+        }
+    }
 
     if ($BatchSize -gt 0 -and $BatchSize -lt $sites.Count) {
         $sites = $sites | Select-Object -First $BatchSize
-        Write-Output "Batch limited to: $($sites.Count) sites"
+        Write-Information "Batch limited to: $($sites.Count) sites" -InformationAction Continue
     }
 
     return @($sites)
@@ -412,7 +457,13 @@ Write-Output "Sites to process: $($sites.Count)"
 
 #region Wave Planning
 
-$siteUrls = @($sites | ForEach-Object { $_.Url })
+# Extract URLs — sites may be objects with .Url or plain strings
+if ($sites[0] -is [string]) {
+    $siteUrls = @($sites | Where-Object { $_ })
+} else {
+    $siteUrls = @($sites | ForEach-Object { $_.Url } | Where-Object { $_ })
+}
+
 $waves = Split-IntoBatches -Items $siteUrls -Size $WaveSize
 $totalWaves = $waves.Count
 
@@ -509,9 +560,11 @@ for ($waveIndex = 0; $waveIndex -lt $totalWaves; $waveIndex++) {
 
         # Build child runbook parameters
         $childParams = @{
-            SiteUrls = ($waveSites | ConvertTo-Json -Compress)
-            RunId    = $runId
-            DryRun   = $DryRun.IsPresent
+            SiteUrls           = ($waveSites | ConvertTo-Json -Compress)
+            RunId              = $runId
+            KeyVaultName       = $KeyVaultName
+            StorageAccountName = $StorageAccountName
+            DryRun             = $DryRun.IsPresent
         }
 
         # Add job-type-specific parameters from config
