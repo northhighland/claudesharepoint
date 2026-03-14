@@ -69,17 +69,24 @@ async function handleGetJob(context, jobId) {
     const job = jobs[0];
     // Fetch per-site results for this run
     const resultsTableName = RESULTS_TABLE_MAP[job.JobType];
-    let results = [];
+    let mappedResults = [];
     if (resultsTableName) {
         try {
             const runId = job.rowKey ?? "";
-            results = await (0, table_client_1.queryEntities)(resultsTableName, (0, data_tables_1.odata) `PartitionKey eq ${runId}`);
+            const rawResults = await (0, table_client_1.queryEntities)(resultsTableName, (0, data_tables_1.odata) `PartitionKey eq ${runId}`);
+            // Map results based on job type
+            if (job.JobType === "VersionCleanup") {
+                mappedResults = rawResults.map(transforms_1.mapVersionCleanupResultEntity);
+            }
+            else {
+                mappedResults = rawResults;
+            }
         }
         catch {
             // Results table may not exist; return empty array
         }
     }
-    context.res = (0, response_1.jsonResponse)({ job: (0, transforms_1.mapJobRunEntity)(job), results });
+    context.res = (0, response_1.jsonResponse)({ job: (0, transforms_1.mapJobRunEntity)(job), results: mappedResults });
 }
 exports.default = handler;
 //# sourceMappingURL=index.js.map

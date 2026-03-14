@@ -47,10 +47,14 @@ export interface VersionCleanupResult {
   runId: string;
   siteUrl: string;
   siteName: string;
-  status: "Success" | "Failed" | "Skipped";
+  status: "Success" | "Failed" | "Skipped" | "Error";
+  filesScanned: number;
+  filesWithVersions: number;
+  versionsFound: number;
   versionsDeleted: number;
   spaceReclaimedBytes: number;
   librariesProcessed: number;
+  isDryRun: boolean;
   errorMessage?: string;
   processedAt: string;
 }

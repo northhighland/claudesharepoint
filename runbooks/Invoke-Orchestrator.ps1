@@ -76,6 +76,7 @@ if (-not $moduleLoaded) {
         try { $e = Get-AutomationVariable -Name 'ExpireAfterDays' -EA SilentlyContinue; if ($null -ne $e) { $config.ExpireAfterDays = [int]$e } } catch {}
         try { $m = Get-AutomationVariable -Name 'MaxMajorVersions' -EA SilentlyContinue; if ($null -ne $m) { $config.MaxMajorVersions = [int]$m } } catch {}
         try { $b = Get-AutomationVariable -Name 'BatchSize' -EA SilentlyContinue; if ($null -ne $b) { $config.BatchSize = [int]$b } } catch {}
+        try { $w = Get-AutomationVariable -Name 'WaveSize' -EA SilentlyContinue; if ($null -ne $w) { $config.WaveSize = [int]$w } } catch {}
         return $config
     }
     function Initialize-TokenRefresh { }
@@ -430,6 +431,7 @@ if ($config.DisableSchedule -eq $true) {
 
 # Apply parameter overrides
 if ($BatchSize -gt 0) { $config.BatchSize = $BatchSize }
+if ($WaveSize -ne 30) { $config.WaveSize = $WaveSize } elseif ($config.WaveSize) { $WaveSize = $config.WaveSize }
 
 # Resolve Key Vault and Storage Account names
 if ([string]::IsNullOrWhiteSpace($KeyVaultName)) {
@@ -574,15 +576,15 @@ for ($waveIndex = 0; $waveIndex -lt $totalWaves; $waveIndex++) {
 
     Write-Output "--- Wave $waveNumber/$totalWaves ($($waveSites.Count) sites) ---"
 
-    # Start child runbooks for this wave
+    # Start one child runbook per site in this wave (true parallelism)
     $childJobs = @()
 
     foreach ($siteUrl in $waveSites) {
         $totalChildJobsTotal++
 
-        # Build child runbook parameters
+        # Each child gets a single site as a JSON array
         $childParams = @{
-            SiteUrls           = ($waveSites | ConvertTo-Json -Compress)
+            SiteUrls           = ConvertTo-Json -Compress @($siteUrl)
             RunId              = $runId
             KeyVaultName       = $KeyVaultName
             StorageAccountName = $StorageAccountName
@@ -606,20 +608,17 @@ for ($waveIndex = 0; $waveIndex -lt $totalWaves; $waveIndex++) {
                 -ErrorAction Stop
 
             $childJobs += $job
-            Write-Output "  Started: $($job.JobId) -> $($waveSites.Count) sites"
+            Write-Output "  Started: $($job.JobId) -> $siteUrl"
         }
         catch {
-            Write-Warning "  Failed to start child runbook: $($_.Exception.Message)"
+            Write-Warning "  Failed to start child for ${siteUrl}: $($_.Exception.Message)"
             $totalChildJobsFailed++
             $waveErrors += @{
                 Wave    = $waveNumber
-                Sites   = $waveSites
+                Site    = $siteUrl
                 Error   = $_.Exception.Message
             }
         }
-
-        # Only start one child job per wave (sites are batched in the JSON array)
-        break
     }
 
     if ($childJobs.Count -eq 0) {
@@ -632,7 +631,7 @@ for ($waveIndex = 0; $waveIndex -lt $totalWaves; $waveIndex++) {
 
     $pollIntervalSeconds = 30
     $waveComplete = $false
-    $maxWaitMinutes = 120
+    $maxWaitMinutes = 10
     $waveDeadline = (Get-Date).AddMinutes($maxWaitMinutes)
 
     while (-not $waveComplete -and (Get-Date) -lt $waveDeadline) {
