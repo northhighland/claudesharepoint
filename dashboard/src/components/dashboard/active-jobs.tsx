@@ -12,7 +12,7 @@ interface ActiveJobsProps {
 export function ActiveJobs({ jobs, isLoading }: ActiveJobsProps): React.ReactElement {
   if (isLoading) {
     return (
-      <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
+      <div className="glass-card rounded-xl p-6">
         <h3 className="mb-4 text-sm font-medium text-muted-foreground">Recent Jobs</h3>
         <div className="space-y-3">
           {[1, 2, 3].map((i) => (
@@ -26,7 +26,7 @@ export function ActiveJobs({ jobs, isLoading }: ActiveJobsProps): React.ReactEle
   const displayJobs = jobs ?? [];
 
   return (
-    <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
+    <div className="glass-card rounded-xl p-6">
       <h3 className="mb-4 text-sm font-medium text-muted-foreground">Recent Jobs</h3>
       {displayJobs.length === 0 ? (
         <div className="flex h-40 items-center justify-center text-sm text-muted-foreground">
@@ -48,7 +48,7 @@ export function ActiveJobs({ jobs, isLoading }: ActiveJobsProps): React.ReactEle
             return (
               <div
                 key={job.runId}
-                className="rounded-lg border border-border p-4 transition-colors hover:bg-accent/50"
+                className="glass-card-hover rounded-lg p-4"
               >
                 <div className="flex items-start justify-between">
                   <div className="flex items-center gap-2">
@@ -62,6 +62,11 @@ export function ActiveJobs({ jobs, isLoading }: ActiveJobsProps): React.ReactEle
                       <Clock className="h-4 w-4 text-yellow-500" />
                     )}
                     <span className="text-sm font-medium">{job.jobType}</span>
+                    {job.isDryRun && (
+                      <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] font-medium text-amber-400">
+                        DRY RUN
+                      </span>
+                    )}
                   </div>
                   <span
                     className={cn(

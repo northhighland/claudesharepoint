@@ -16,7 +16,7 @@ export function QuotaHistory({ sites, isLoading }: QuotaHistoryProps): React.Rea
 
   if (isLoading) {
     return (
-      <div className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
+      <div className="glass-card overflow-hidden rounded-xl">
         <div className="border-b border-border px-4 py-3">
           <h3 className="text-sm font-medium">Auto-Increase History</h3>
         </div>
@@ -30,7 +30,7 @@ export function QuotaHistory({ sites, isLoading }: QuotaHistoryProps): React.Rea
   }
 
   return (
-    <div className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
+    <div className="glass-card overflow-hidden rounded-xl">
       <div className="border-b border-border px-4 py-3">
         <h3 className="text-sm font-medium">Auto-Increase History</h3>
       </div>
@@ -82,7 +82,7 @@ export function QuotaHistory({ sites, isLoading }: QuotaHistoryProps): React.Rea
                           <ArrowRight className="h-3 w-3 text-muted-foreground" />
                         </>
                       )}
-                      <span className="font-medium text-green-600">
+                      <span className="font-medium text-emerald-400">
                         {site.newQuotaBytes ? formatBytes(site.newQuotaBytes) : "--"}
                       </span>
                     </div>

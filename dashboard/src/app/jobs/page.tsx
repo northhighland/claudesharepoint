@@ -61,7 +61,7 @@ export default function JobsPage(): React.ReactElement {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Jobs</h1>
+          <h1 className="font-display text-2xl font-bold">Jobs</h1>
           <p className="text-sm text-muted-foreground">
             Monitor and manage automation job runs
           </p>
@@ -84,7 +84,7 @@ export default function JobsPage(): React.ReactElement {
                 className="fixed inset-0 z-10"
                 onClick={() => setTriggerOpen(false)}
               />
-              <div className="absolute right-0 z-20 mt-1 w-48 rounded-lg border border-border bg-card py-1 shadow-lg">
+              <div className="absolute right-0 z-20 mt-1 w-48 glass-card rounded-lg py-1 shadow-lg">
                 {JOB_TYPES.map((type) => (
                   <button
                     key={type}
@@ -110,7 +110,7 @@ export default function JobsPage(): React.ReactElement {
               jobType: (e.target.value || undefined) as JobType | undefined,
             }))
           }
-          className="rounded-lg border border-border bg-card px-3 py-2 text-sm"
+          className="rounded-lg border border-border bg-secondary px-3 py-2 text-sm text-foreground"
         >
           <option value="">All Types</option>
           {JOB_TYPES.map((t) => (
@@ -127,7 +127,7 @@ export default function JobsPage(): React.ReactElement {
               status: (e.target.value || undefined) as JobStatus | undefined,
             }))
           }
-          className="rounded-lg border border-border bg-card px-3 py-2 text-sm"
+          className="rounded-lg border border-border bg-secondary px-3 py-2 text-sm text-foreground"
         >
           <option value="">All Statuses</option>
           {JOB_STATUSES.map((s) => (

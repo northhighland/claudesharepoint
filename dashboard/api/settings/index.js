@@ -8,7 +8,6 @@ const SETTING_VARIABLES = [
     "ExpireAfterDays",
     "MaxMajorVersions",
     "QuotaIncrementGB",
-    "ExclusionPatterns",
     "TeamsWebhookUrl",
     "NotificationEmail",
 ];
@@ -17,7 +16,6 @@ const SETTING_VALIDATORS = {
     ExpireAfterDays: (v) => /^\d+$/.test(v) && +v >= 1 && +v <= 3650 ? null : "Must be 1-3650",
     MaxMajorVersions: (v) => /^\d+$/.test(v) && +v >= 1 && +v <= 50000 ? null : "Must be 1-50000",
     QuotaIncrementGB: (v) => /^\d+$/.test(v) && +v >= 1 && +v <= 100 ? null : "Must be 1-100",
-    ExclusionPatterns: (v) => v.length <= 2000 && !v.includes("\n") ? null : "Max 2000 chars, no newlines",
     TeamsWebhookUrl: (v) => v === "" || /^https:\/\/[\w-]+\.webhook\.office\.com\//.test(v)
         ? null
         : "Must be empty or a valid Teams webhook URL",

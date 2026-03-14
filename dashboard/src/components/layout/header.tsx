@@ -1,6 +1,6 @@
 "use client";
 
-import { Database, LogOut, User } from "lucide-react";
+import { LogOut, User, Zap } from "lucide-react";
 import { useEffect, useState } from "react";
 
 interface SwaClientPrincipal {
@@ -27,29 +27,33 @@ export function Header(): React.ReactElement {
   };
 
   return (
-    <header className="sticky top-0 z-20 flex h-16 items-center justify-between border-b border-border bg-card px-6 lg:pl-72">
+    <header className="sticky top-0 z-20 flex h-14 items-center justify-between border-b border-border bg-card/60 backdrop-blur-xl px-6 lg:pl-6">
       <div className="flex items-center gap-2 pl-10 lg:pl-0">
-        <Database className="h-5 w-5 text-primary lg:hidden" />
-        <h1 className="text-lg font-semibold">claudesharepoint</h1>
+        <Zap className="h-4 w-4 text-primary lg:hidden" />
+        <h1 className="text-sm font-medium text-muted-foreground">
+          claudesharepoint
+        </h1>
       </div>
 
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-3">
         {user ? (
           <>
             <div className="hidden items-center gap-2 text-sm sm:flex">
-              <User className="h-4 w-4 text-muted-foreground" />
-              <span className="text-muted-foreground">{user.userDetails}</span>
+              <div className="flex h-7 w-7 items-center justify-center rounded-full bg-primary/10">
+                <User className="h-3.5 w-3.5 text-primary" />
+              </div>
+              <span className="text-sm text-muted-foreground">{user.userDetails}</span>
             </div>
             <button
               onClick={handleLogout}
-              className="rounded-md p-2 text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+              className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
               aria-label="Sign out"
             >
               <LogOut className="h-4 w-4" />
             </button>
           </>
         ) : (
-          <span className="text-sm text-muted-foreground">Not signed in</span>
+          <span className="text-xs text-muted-foreground">Not signed in</span>
         )}
       </div>
     </header>

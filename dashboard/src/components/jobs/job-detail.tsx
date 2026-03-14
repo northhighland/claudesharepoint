@@ -1,11 +1,14 @@
 "use client";
 
+import { useState } from "react";
 import { ArrowLeft, CheckCircle2, XCircle, SkipForward } from "lucide-react";
 import { cn, formatDate, formatDuration, formatBytes, getStatusColor } from "@/lib/utils";
 import { usePolling } from "@/hooks/use-polling";
 import { fetchJob } from "@/lib/api";
 import type { JobRun, VersionCleanupResult } from "@/lib/types";
 import { JobProgress } from "@/components/jobs/job-progress";
+import { WaveTimeline } from "@/components/jobs/wave-timeline";
+import { LiveProgress } from "@/components/jobs/live-progress";
 
 interface JobDetailProps {
   job: JobRun;
@@ -20,6 +23,7 @@ export function JobDetail({ job, onBack }: JobDetailProps): React.ReactElement {
   );
 
   const results = data?.results ?? [];
+  const [errorExpanded, setErrorExpanded] = useState(false);
 
   return (
     <div className="space-y-6">
@@ -33,7 +37,14 @@ export function JobDetail({ job, onBack }: JobDetailProps): React.ReactElement {
           <ArrowLeft className="h-5 w-5" />
         </button>
         <div>
-          <h2 className="text-xl font-semibold">{job.jobType} Run</h2>
+          <div className="flex items-center gap-3">
+            <h2 className="text-xl font-semibold">{job.jobType} Run</h2>
+            {job.isDryRun && (
+              <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] font-medium text-amber-400">
+                Dry Run
+              </span>
+            )}
+          </div>
           <p className="text-sm text-muted-foreground">Run ID: {job.runId}</p>
         </div>
         <span
@@ -48,26 +59,26 @@ export function JobDetail({ job, onBack }: JobDetailProps): React.ReactElement {
 
       {/* Summary cards */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <div className="rounded-lg border border-border bg-card p-4">
+        <div className="glass-card rounded-xl p-4">
           <p className="text-xs text-muted-foreground">Started</p>
           <p className="mt-1 text-sm font-medium">{formatDate(job.startedAt)}</p>
         </div>
-        <div className="rounded-lg border border-border bg-card p-4">
+        <div className="glass-card rounded-xl p-4">
           <p className="text-xs text-muted-foreground">Duration</p>
           <p className="mt-1 text-sm font-medium">
             {job.durationMs ? formatDuration(job.durationMs) : "In progress..."}
           </p>
         </div>
-        <div className="rounded-lg border border-border bg-card p-4">
+        <div className="glass-card rounded-xl p-4">
           <p className="text-xs text-muted-foreground">Sites Processed</p>
           <p className="mt-1 text-sm font-medium">
             {job.processedSites} / {job.totalSites}
             {job.failedSites > 0 && (
-              <span className="ml-2 text-red-600">({job.failedSites} failed)</span>
+              <span className="ml-2 text-red-400">({job.failedSites} failed)</span>
             )}
           </p>
         </div>
-        <div className="rounded-lg border border-border bg-card p-4">
+        <div className="glass-card rounded-xl p-4">
           <p className="text-xs text-muted-foreground">Space Reclaimed</p>
           <p className="mt-1 text-sm font-medium">
             {formatBytes(job.totalSpaceReclaimedBytes)}
@@ -76,23 +87,33 @@ export function JobDetail({ job, onBack }: JobDetailProps): React.ReactElement {
       </div>
 
       {/* Job progress */}
-      {(job.status === "Running" || (job.totalWaves ?? 0) > 0) && (
-        <div className="rounded-xl border border-border bg-card p-4 shadow-sm">
-          <h3 className="mb-3 text-sm font-medium">Progress</h3>
-          <JobProgress job={job} />
-        </div>
+      {job.status === "Running" && (
+        <LiveProgress job={job} />
+      )}
+      {(job.totalWaves ?? 0) > 0 && (
+        <WaveTimeline job={job} />
       )}
 
       {/* Error message */}
       {job.errorMessage && (
-        <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-800 dark:border-red-900 dark:bg-red-950 dark:text-red-300">
+        <div className="rounded-lg border border-red-500/20 bg-red-500/10 p-4 text-sm text-red-400">
           <p className="font-medium">Error</p>
-          <p className="mt-1">{job.errorMessage}</p>
+          <p className={cn("mt-1", !errorExpanded && "line-clamp-2")}>
+            {job.errorMessage}
+          </p>
+          {job.errorMessage.length > 200 && (
+            <button
+              onClick={() => setErrorExpanded(!errorExpanded)}
+              className="mt-2 text-xs font-medium text-red-300 hover:text-red-200"
+            >
+              {errorExpanded ? "Show less" : "Show more"}
+            </button>
+          )}
         </div>
       )}
 
       {/* Results table */}
-      <div className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
+      <div className="overflow-hidden glass-card rounded-xl shadow-sm">
         <div className="border-b border-border px-4 py-3">
           <h3 className="text-sm font-medium">Per-Site Results</h3>
         </div>
@@ -105,7 +126,7 @@ export function JobDetail({ job, onBack }: JobDetailProps): React.ReactElement {
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full">
-              <thead className="bg-muted/50">
+              <thead className="bg-muted/30">
                 <tr>
                   <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">
                     Site

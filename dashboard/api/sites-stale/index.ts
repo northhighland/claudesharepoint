@@ -73,7 +73,22 @@ async function handlePost(
   context: Context,
   req: HttpRequest
 ): Promise<void> {
-  const body = req.body as StaleSiteActionRequest | undefined;
+  const body = req.body as (StaleSiteActionRequest & { type?: string; siteName?: string; ownerEmail?: string }) | undefined;
+
+  // Handle notification requests (stub — actual email via Logic App later)
+  if (body?.type === "notify") {
+    const { siteUrl, siteName, ownerEmail } = body;
+    if (!siteUrl || !siteName || !ownerEmail) {
+      context.res = errorResponse("siteUrl, siteName, and ownerEmail are required.", 400);
+      return;
+    }
+    const principal = getClientPrincipal(req);
+    context.log.info(
+      `[AUDIT] Stale site notification requested for ${siteUrl} (${siteName}) to ${ownerEmail} by ${principal.userDetails}`
+    );
+    context.res = jsonResponse({ notified: true, siteUrl, ownerEmail });
+    return;
+  }
 
   if (!body || !body.siteUrl || !body.action) {
     context.res = errorResponse(

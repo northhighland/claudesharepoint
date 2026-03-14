@@ -59,7 +59,7 @@ export function JobTable({ jobs, isLoading, onSelectJob }: JobTableProps): React
 
   if (isLoading) {
     return (
-      <div className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
+      <div className="overflow-hidden glass-card rounded-xl shadow-sm">
         <div className="space-y-2 p-4">
           {[1, 2, 3, 4, 5].map((i) => (
             <div key={i} className="h-12 animate-pulse rounded bg-muted" />
@@ -70,10 +70,10 @@ export function JobTable({ jobs, isLoading, onSelectJob }: JobTableProps): React
   }
 
   return (
-    <div className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
+    <div className="overflow-hidden glass-card rounded-xl shadow-sm">
       <div className="overflow-x-auto">
         <table className="w-full">
-          <thead className="border-b border-border bg-muted/50">
+          <thead className="border-b border-border bg-muted/20">
             <tr>
               <SortHeader label="Type" sortable="jobType" />
               <SortHeader label="Status" sortable="status" />
@@ -105,7 +105,7 @@ export function JobTable({ jobs, isLoading, onSelectJob }: JobTableProps): React
                   <td className="whitespace-nowrap px-4 py-3 text-sm font-medium">
                     {job.jobType}
                     {job.isDryRun && (
-                      <span className="ml-2 rounded bg-yellow-100 px-1.5 py-0.5 text-xs text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300">
+                      <span className="ml-2 rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] font-medium text-amber-400">
                         Dry Run
                       </span>
                     )}

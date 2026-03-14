@@ -3,10 +3,11 @@ import type {
   JobRun,
   JobFilters,
   JobType,
-  QuotaStatus,
+  QuotaStatusResponse,
   StaleSiteRecommendation,
   VersionCleanupResult,
   AppSettings,
+  TimeRange,
 } from "./types";
 
 const API_BASE = "/api";
@@ -27,8 +28,8 @@ async function fetchJSON<T>(url: string, init?: RequestInit): Promise<T> {
   return json.data !== undefined ? json.data : json;
 }
 
-export async function fetchOverview(): Promise<DashboardOverview> {
-  return fetchJSON<DashboardOverview>("/dashboard-overview");
+export async function fetchOverview(range: TimeRange = "all"): Promise<DashboardOverview> {
+  return fetchJSON<DashboardOverview>(`/dashboard-overview?range=${range}`);
 }
 
 export async function fetchJobs(filters?: JobFilters): Promise<JobRun[]> {
@@ -57,8 +58,9 @@ export async function triggerJob(
   });
 }
 
-export async function fetchStaleSites(): Promise<StaleSiteRecommendation[]> {
-  return fetchJSON<StaleSiteRecommendation[]>("/sites-stale");
+export async function fetchStaleSites(category?: string): Promise<StaleSiteRecommendation[]> {
+  const params = category ? `?category=${encodeURIComponent(category)}` : "";
+  return fetchJSON<StaleSiteRecommendation[]>(`/sites-stale${params}`);
 }
 
 export async function updateStaleSiteAction(
@@ -71,8 +73,24 @@ export async function updateStaleSiteAction(
   });
 }
 
-export async function fetchQuotaStatus(): Promise<QuotaStatus[]> {
-  return fetchJSON<QuotaStatus[]>("/quota-status");
+export async function notifyStaleSiteOwner(
+  siteUrl: string,
+  siteName: string,
+  ownerEmail: string
+): Promise<void> {
+  await fetchJSON("/sites-stale/notify", {
+    method: "POST",
+    body: JSON.stringify({ siteUrl, siteName, ownerEmail }),
+  });
+}
+
+export async function fetchQuotaStatus(
+  sort: "percentUsed" | "storageUsedGB" = "percentUsed",
+  top?: number
+): Promise<QuotaStatusResponse> {
+  const params = new URLSearchParams({ sort });
+  if (top) params.set("top", String(top));
+  return fetchJSON<QuotaStatusResponse>(`/quota-status?${params.toString()}`);
 }
 
 export async function fetchSettings(): Promise<AppSettings> {

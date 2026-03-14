@@ -14,11 +14,18 @@ function parseDetails(detailsStr) {
 }
 const handler = async function (context, req) {
     try {
-        const thirtyDaysAgo = new Date();
-        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-        const thirtyDaysAgoISO = thirtyDaysAgo.toISOString();
-        // Query recent job runs (last 30 days)
-        const recentJobs = await (0, table_client_1.queryEntities)("JobRuns", (0, table_client_1.odata) `Timestamp ge datetime'${thirtyDaysAgoISO}'`);
+        // Support ?range=30d|90d|all (default: all)
+        const range = req.query.range ?? "all";
+        let dateFilter;
+        if (range === "30d" || range === "90d") {
+            const days = range === "30d" ? 30 : 90;
+            const cutoff = new Date();
+            cutoff.setDate(cutoff.getDate() - days);
+            const cutoffISO = cutoff.toISOString();
+            dateFilter = (0, table_client_1.odata) `Timestamp ge datetime'${cutoffISO}'`;
+        }
+        // Query job runs within the selected range
+        const recentJobs = await (0, table_client_1.queryEntities)("JobRuns", dateFilter);
         // Count active jobs
         const activeJobs = recentJobs.filter((job) => job.Status === "Running").length;
         // Unique sites: max TotalSites from latest completed run of each type
@@ -41,18 +48,52 @@ const handler = async function (context, req) {
         catch {
             // Table may not exist yet
         }
-        // Build storage trend from Details.CompletedAt dates
-        const trendMap = new Map();
-        for (const job of recentJobs) {
+        // Calculate totalSitesProcessed from completed non-DryRun jobs
+        let totalSitesProcessed = 0;
+        for (const job of completedJobs) {
             const details = parseDetails(job.Details);
-            if (details.CompletedAt) {
-                const date = details.CompletedAt.substring(0, 10);
-                // No per-job space data at top level; count completions per day
-                trendMap.set(date, (trendMap.get(date) ?? 0) + 1);
+            const isDryRun = job.DryRun ?? details.DryRun ?? false;
+            if (!isDryRun) {
+                totalSitesProcessed += (details.JobsSucceeded ?? 0) + (details.JobsFailed ?? 0);
             }
         }
+        const adminHoursSaved = Math.round((totalSitesProcessed * 15 / 60) * 100) / 100;
+        const costAvoidanceDollars = Math.round(adminHoursSaved * 85 * 100) / 100;
+        // Build storage trend from actual space reclaimed in results tables
+        const trendMap = new Map();
+        let totalStorageReclaimedBytes = 0;
+        try {
+            const versionResults = await (0, table_client_1.queryEntities)("VersionCleanupResults", dateFilter);
+            for (const result of versionResults) {
+                const mbReclaimed = result.SpaceReclaimedMB ?? 0;
+                const bytes = Math.round(mbReclaimed * 1024 * 1024);
+                totalStorageReclaimedBytes += bytes;
+                if (result.ProcessedAt) {
+                    const date = result.ProcessedAt.substring(0, 10);
+                    trendMap.set(date, (trendMap.get(date) ?? 0) + mbReclaimed / 1024);
+                }
+            }
+        }
+        catch {
+            // Table may not exist yet
+        }
+        try {
+            const recycleBinResults = await (0, table_client_1.queryEntities)("RecycleBinResults", dateFilter);
+            for (const result of recycleBinResults) {
+                const mbReclaimed = result.SpaceReclaimedMB ?? 0;
+                const bytes = Math.round(mbReclaimed * 1024 * 1024);
+                totalStorageReclaimedBytes += bytes;
+                if (result.ProcessedAt) {
+                    const date = result.ProcessedAt.substring(0, 10);
+                    trendMap.set(date, (trendMap.get(date) ?? 0) + mbReclaimed / 1024);
+                }
+            }
+        }
+        catch {
+            // Table may not exist yet
+        }
         const storageTrend = Array.from(trendMap.entries())
-            .map(([date, count]) => ({ date, reclaimedGB: count }))
+            .map(([date, gb]) => ({ date, reclaimedGB: Math.round(gb * 100) / 100 }))
             .sort((a, b) => a.date.localeCompare(b.date));
         // Transform jobs to frontend format
         const sortedRecentJobs = recentJobs
@@ -82,10 +123,14 @@ const handler = async function (context, req) {
                 errorMessage: undefined,
                 triggeredBy: "Automation",
                 isDryRun: job.DryRun ?? details.DryRun ?? false,
+                totalWaves: job.TotalWaves ?? undefined,
+                completedWaves: job.CompletedWaves ?? undefined,
+                jobsSucceeded: details.JobsSucceeded ?? undefined,
+                jobsFailed: details.JobsFailed ?? undefined,
             };
         });
         const response = {
-            totalStorageReclaimedBytes: 0,
+            totalStorageReclaimedBytes,
             storageReclaimedTrendPercent: 0,
             activeJobs,
             activeJobsTrendPercent: 0,
@@ -95,6 +140,9 @@ const handler = async function (context, req) {
             staleSitesTrendPercent: 0,
             storageTrend,
             recentJobs: sortedRecentJobs,
+            totalSitesProcessed,
+            adminHoursSaved,
+            costAvoidanceDollars,
         };
         context.res = (0, response_1.jsonResponse)(response);
     }

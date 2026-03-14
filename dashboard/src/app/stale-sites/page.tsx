@@ -4,6 +4,7 @@ import { useState } from "react";
 import { usePolling } from "@/hooks/use-polling";
 import { fetchStaleSites } from "@/lib/api";
 import { SiteTable } from "@/components/stale-sites/site-table";
+import { ImpactSummary } from "@/components/stale-sites/impact-summary";
 import { cn } from "@/lib/utils";
 import type { StaleSiteRecommendation } from "@/lib/types";
 
@@ -30,9 +31,9 @@ export default function StaleSitesPage(): React.ReactElement {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">Stale Sites</h1>
+        <h1 className="font-display text-2xl font-bold">Stale Sites</h1>
         <p className="text-sm text-muted-foreground">
-          Analyze site activity and manage stale site recommendations
+          These sites cost money but nobody uses them
         </p>
       </div>
 
@@ -45,8 +46,8 @@ export default function StaleSitesPage(): React.ReactElement {
             className={cn(
               "rounded-lg px-3 py-1.5 text-sm font-medium transition-colors",
               category === cat
-                ? "bg-primary text-primary-foreground"
-                : "bg-muted text-muted-foreground hover:text-foreground"
+                ? "bg-primary/15 text-primary"
+                : "bg-muted/50 text-muted-foreground hover:text-foreground"
             )}
           >
             {cat === "all" ? "All" : cat}
@@ -54,6 +55,8 @@ export default function StaleSitesPage(): React.ReactElement {
           </button>
         ))}
       </div>
+
+      <ImpactSummary sites={allSites} />
 
       <SiteTable
         sites={filtered}

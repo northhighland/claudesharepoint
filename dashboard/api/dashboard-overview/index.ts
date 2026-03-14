@@ -43,14 +43,22 @@ const handler: AzureFunction = async function (
   req: HttpRequest
 ): Promise<void> {
   try {
-    const thirtyDaysAgo = new Date();
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-    const thirtyDaysAgoISO = thirtyDaysAgo.toISOString();
+    // Support ?range=30d|90d|all (default: all)
+    const range = req.query.range ?? "all";
+    let dateFilter: string | undefined;
 
-    // Query recent job runs (last 30 days)
+    if (range === "30d" || range === "90d") {
+      const days = range === "30d" ? 30 : 90;
+      const cutoff = new Date();
+      cutoff.setDate(cutoff.getDate() - days);
+      const cutoffISO = cutoff.toISOString();
+      dateFilter = odata`Timestamp ge datetime'${cutoffISO}'`;
+    }
+
+    // Query job runs within the selected range
     const recentJobs = await queryEntities<RawJobRunEntity>(
       "JobRuns",
-      odata`Timestamp ge datetime'${thirtyDaysAgoISO}'`
+      dateFilter
     );
 
     // Count active jobs
@@ -87,6 +95,18 @@ const handler: AzureFunction = async function (
       // Table may not exist yet
     }
 
+    // Calculate totalSitesProcessed from completed non-DryRun jobs
+    let totalSitesProcessed = 0;
+    for (const job of completedJobs) {
+      const details = parseDetails(job.Details);
+      const isDryRun = job.DryRun ?? details.DryRun ?? false;
+      if (!isDryRun) {
+        totalSitesProcessed += (details.JobsSucceeded ?? 0) + (details.JobsFailed ?? 0);
+      }
+    }
+    const adminHoursSaved = Math.round((totalSitesProcessed * 15 / 60) * 100) / 100;
+    const costAvoidanceDollars = Math.round(adminHoursSaved * 85 * 100) / 100;
+
     // Build storage trend from actual space reclaimed in results tables
     const trendMap = new Map<string, number>();
     let totalStorageReclaimedBytes = 0;
@@ -94,7 +114,7 @@ const handler: AzureFunction = async function (
     try {
       const versionResults = await queryEntities<VersionCleanupResultEntity>(
         "VersionCleanupResults",
-        odata`Timestamp ge datetime'${thirtyDaysAgoISO}'`
+        dateFilter
       );
       for (const result of versionResults) {
         const mbReclaimed = result.SpaceReclaimedMB ?? 0;
@@ -112,7 +132,7 @@ const handler: AzureFunction = async function (
     try {
       const recycleBinResults = await queryEntities<RecycleBinResultEntity>(
         "RecycleBinResults",
-        odata`Timestamp ge datetime'${thirtyDaysAgoISO}'`
+        dateFilter
       );
       for (const result of recycleBinResults) {
         const mbReclaimed = result.SpaceReclaimedMB ?? 0;
@@ -178,6 +198,9 @@ const handler: AzureFunction = async function (
       staleSitesTrendPercent: 0,
       storageTrend,
       recentJobs: sortedRecentJobs,
+      totalSitesProcessed,
+      adminHoursSaved,
+      costAvoidanceDollars,
     };
 
     context.res = jsonResponse(response);

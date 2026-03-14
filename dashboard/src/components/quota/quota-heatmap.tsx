@@ -9,10 +9,10 @@ interface QuotaHeatmapProps {
 }
 
 function getHeatColor(percent: number): string {
-  if (percent >= 95) return "bg-red-500 text-white";
-  if (percent >= 85) return "bg-orange-400 text-white";
-  if (percent >= 70) return "bg-yellow-400 text-yellow-950";
-  return "bg-green-400 text-green-950";
+  if (percent >= 95) return "bg-red-500/80 text-white";
+  if (percent >= 85) return "bg-orange-500/70 text-white";
+  if (percent >= 70) return "bg-amber-500/60 text-amber-950";
+  return "bg-emerald-500/50 text-emerald-950";
 }
 
 function getHeatBorder(percent: number): string {
@@ -25,7 +25,7 @@ function getHeatBorder(percent: number): string {
 export function QuotaHeatmap({ sites, isLoading }: QuotaHeatmapProps): React.ReactElement {
   if (isLoading) {
     return (
-      <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
+      <div className="glass-card rounded-xl p-6">
         <h3 className="mb-4 text-sm font-medium text-muted-foreground">
           Quota Usage Heatmap
         </h3>
@@ -41,24 +41,24 @@ export function QuotaHeatmap({ sites, isLoading }: QuotaHeatmapProps): React.Rea
   const sorted = [...sites].sort((a, b) => b.percentUsed - a.percentUsed);
 
   return (
-    <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
+    <div className="glass-card rounded-xl p-6">
       <div className="mb-4 flex items-center justify-between">
         <h3 className="text-sm font-medium text-muted-foreground">Quota Usage Heatmap</h3>
         <div className="flex items-center gap-3 text-xs text-muted-foreground">
           <span className="flex items-center gap-1">
-            <span className="inline-block h-3 w-3 rounded bg-green-400" />
+            <span className="inline-block h-3 w-3 rounded bg-emerald-500/50" />
             &lt;70%
           </span>
           <span className="flex items-center gap-1">
-            <span className="inline-block h-3 w-3 rounded bg-yellow-400" />
+            <span className="inline-block h-3 w-3 rounded bg-amber-500/60" />
             70-85%
           </span>
           <span className="flex items-center gap-1">
-            <span className="inline-block h-3 w-3 rounded bg-orange-400" />
+            <span className="inline-block h-3 w-3 rounded bg-orange-500/70" />
             85-95%
           </span>
           <span className="flex items-center gap-1">
-            <span className="inline-block h-3 w-3 rounded bg-red-500" />
+            <span className="inline-block h-3 w-3 rounded bg-red-500/80" />
             &gt;95%
           </span>
         </div>
@@ -88,7 +88,7 @@ export function QuotaHeatmap({ sites, isLoading }: QuotaHeatmapProps): React.Rea
               <span className="text-xs font-bold">{Math.round(site.percentUsed)}%</span>
 
               {/* Tooltip */}
-              <div className="pointer-events-none absolute bottom-full left-1/2 z-10 mb-2 hidden w-48 -translate-x-1/2 rounded-lg border border-border bg-card p-2 text-xs text-foreground shadow-lg group-hover:block">
+              <div className="pointer-events-none absolute bottom-full left-1/2 z-10 mb-2 hidden w-48 -translate-x-1/2 glass-card rounded-lg p-2 text-xs text-foreground group-hover:block">
                 <p className="font-medium">{site.siteName}</p>
                 <p className="mt-1 text-muted-foreground">
                   {formatBytes(site.usedBytes)} / {formatBytes(site.quotaBytes)}
