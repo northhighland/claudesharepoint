@@ -11,7 +11,7 @@ export default function SettingsPage(): React.ReactElement {
   const [form, setForm] = useState<AppSettings>({
     expireAfterDays: 90,
     maxMajorVersions: 50,
-    quotaIncrementGB: 1,
+    quotaIncrementGB: 25,
     teamsWebhookUrl: "",
     notificationEmail: "",
   });
