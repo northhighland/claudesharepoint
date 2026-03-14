@@ -2,8 +2,9 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 const table_client_1 = require("../shared/table-client");
 const response_1 = require("../shared/response");
-const data_tables_1 = require("@azure/data-tables");
 const types_1 = require("../shared/types");
+const data_tables_1 = require("@azure/data-tables");
+const transforms_1 = require("../shared/transforms");
 /** Map job types to their results table names. */
 const RESULTS_TABLE_MAP = {
     VersionCleanup: "VersionCleanupResults",
@@ -26,7 +27,7 @@ const handler = async function (context, req) {
     }
 };
 async function handleListJobs(context, req) {
-    const typeFilter = req.query.type;
+    const typeFilter = req.query.jobType;
     const statusFilter = req.query.status;
     const topParam = parseInt(req.query.top ?? "50", 10);
     const top = Math.min(Math.max(1, topParam), 200);
@@ -48,9 +49,10 @@ async function handleListJobs(context, req) {
     }
     const filter = filters.length > 0 ? filters.join(" and ") : undefined;
     const jobs = await (0, table_client_1.queryEntities)("JobRuns", filter, top);
-    // Sort by StartTime descending
-    jobs.sort((a, b) => (b.StartTime ?? "").localeCompare(a.StartTime ?? ""));
-    context.res = (0, response_1.jsonResponse)(jobs);
+    // Sort by UpdatedAt descending (StartTime is inside Details JSON, not a top-level field)
+    const raw = jobs;
+    raw.sort((a, b) => (b.UpdatedAt ?? "").localeCompare(a.UpdatedAt ?? ""));
+    context.res = (0, response_1.jsonResponse)(jobs.map(transforms_1.mapJobRunEntity));
 }
 async function handleGetJob(context, jobId) {
     // Validate jobId format (expected: YYYYMMDD_HHmmss)
@@ -77,7 +79,7 @@ async function handleGetJob(context, jobId) {
             // Results table may not exist; return empty array
         }
     }
-    context.res = (0, response_1.jsonResponse)({ job, results });
+    context.res = (0, response_1.jsonResponse)({ job: (0, transforms_1.mapJobRunEntity)(job), results });
 }
 exports.default = handler;
 //# sourceMappingURL=index.js.map
