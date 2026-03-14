@@ -3,6 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const table_client_1 = require("../shared/table-client");
 const response_1 = require("../shared/response");
 const auth_1 = require("../shared/auth");
+const transforms_1 = require("../shared/transforms");
 const TABLE_NAME = "StaleSiteRecommendations";
 const VALID_ACTIONS = ["Keep", "Archive", "Delete"];
 const handler = async function (context, req) {
@@ -43,10 +44,22 @@ async function handleGet(context, req) {
     }
     // Sort by StalenessScore descending
     results.sort((a, b) => (b.StalenessScore ?? 0) - (a.StalenessScore ?? 0));
-    context.res = (0, response_1.jsonResponse)(results);
+    context.res = (0, response_1.jsonResponse)(results.map(transforms_1.mapStaleSiteEntity));
 }
 async function handlePost(context, req) {
     const body = req.body;
+    // Handle notification requests (stub — actual email via Logic App later)
+    if (body?.type === "notify") {
+        const { siteUrl, siteName, ownerEmail } = body;
+        if (!siteUrl || !siteName || !ownerEmail) {
+            context.res = (0, response_1.errorResponse)("siteUrl, siteName, and ownerEmail are required.", 400);
+            return;
+        }
+        const principal = (0, auth_1.getClientPrincipal)(req);
+        context.log.info(`[AUDIT] Stale site notification requested for ${siteUrl} (${siteName}) to ${ownerEmail} by ${principal.userDetails}`);
+        context.res = (0, response_1.jsonResponse)({ notified: true, siteUrl, ownerEmail });
+        return;
+    }
     if (!body || !body.siteUrl || !body.action) {
         context.res = (0, response_1.errorResponse)("Request body must include siteUrl and action.", 400);
         return;
@@ -85,7 +98,7 @@ async function handlePost(context, req) {
     });
     // Return the updated entity
     const updated = await (0, table_client_1.getEntity)(TABLE_NAME, target.partitionKey, target.rowKey);
-    context.res = (0, response_1.jsonResponse)(updated);
+    context.res = (0, response_1.jsonResponse)(updated ? (0, transforms_1.mapStaleSiteEntity)(updated) : null);
 }
 exports.default = handler;
 //# sourceMappingURL=index.js.map
