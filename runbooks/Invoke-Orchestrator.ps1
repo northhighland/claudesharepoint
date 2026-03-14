@@ -569,6 +569,8 @@ $totalChildJobsFailed = 0
 $totalChildJobsTotal = 0
 $waveErrors = @()
 
+try {
+
 for ($waveIndex = 0; $waveIndex -lt $totalWaves; $waveIndex++) {
     $waveNumber = $waveIndex + 1
     $waveSites = $waves[$waveIndex]
@@ -701,6 +703,31 @@ for ($waveIndex = 0; $waveIndex -lt $totalWaves; $waveIndex++) {
     catch {
         Write-Warning "Failed to update JobRun progress: $($_.Exception.Message)"
     }
+}
+
+} # end try
+catch {
+    Write-Error "Wave processing failed: $($_.Exception.Message)"
+    # Mark the job as Failed so it doesn't stay stuck as Running
+    try {
+        Update-JobRun -StorageAccountName $StorageAccountName `
+            -RunId $runId -JobType $JobType -Status 'Failed' `
+            -TotalSites $siteUrls.Count -TotalWaves $totalWaves `
+            -CompletedWaves $waveIndex -Details @{
+                StartedAt       = $startTime.ToString("o")
+                CompletedAt     = (Get-Date).ToString("o")
+                DryRun          = $DryRun.IsPresent
+                WaveSize        = $WaveSize
+                JobsSucceeded   = $totalChildJobsSucceeded
+                JobsFailed      = $totalChildJobsFailed
+                ErrorMessage    = $_.Exception.Message
+            }
+        Write-Output "JobRun marked as Failed due to unhandled error"
+    }
+    catch {
+        Write-Warning "Failed to update JobRun after error: $($_.Exception.Message)"
+    }
+    throw
 }
 
 #endregion

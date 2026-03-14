@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback, useEffect } from "react";
-import { FileStack, CheckCircle2, XCircle, SkipForward, Play } from "lucide-react";
+import { Trash2, CheckCircle2, XCircle, Play } from "lucide-react";
 import { usePolling } from "@/hooks/use-polling";
 import { fetchJobs, triggerJob } from "@/lib/api";
 import { formatBytes, formatDate, getStatusColor, cn } from "@/lib/utils";
@@ -10,17 +10,17 @@ import type { JobRun } from "@/lib/types";
 
 type FilterStatus = "all" | "Completed" | "Failed" | "Running";
 
-export default function VersionsPage(): React.ReactElement {
+export default function RecycleBinPage(): React.ReactElement {
   const [statusFilter, setStatusFilter] = useState<FilterStatus>("all");
   const [selectedJob, setSelectedJob] = useState<JobRun | null>(null);
   const [triggering, setTriggering] = useState(false);
 
   const [pollInterval, setPollInterval] = useState(30000);
   const fetcher = useCallback(
-    () => fetchJobs({ jobType: "VersionCleanup" }),
+    () => fetchJobs({ jobType: "RecycleBinCleaner" }),
     []
   );
-  const { data: jobs, isLoading, mutate } = usePolling("version-jobs", fetcher, pollInterval);
+  const { data: jobs, isLoading, mutate } = usePolling("recycle-bin-jobs", fetcher, pollInterval);
 
   // Dynamic polling: 5s when jobs are running, 30s otherwise
   useEffect(() => {
@@ -31,7 +31,7 @@ export default function VersionsPage(): React.ReactElement {
   const handleTrigger = async (): Promise<void> => {
     setTriggering(true);
     try {
-      await triggerJob("VersionCleanup", false);
+      await triggerJob("RecycleBinCleaner", false);
       mutate();
     } catch {
       // Error handled by api client
@@ -47,9 +47,9 @@ export default function VersionsPage(): React.ReactElement {
   // Summary stats
   const allJobs = jobs ?? [];
   const totalReclaimed = allJobs.reduce((sum, j) => sum + j.totalSpaceReclaimedBytes, 0);
+  const completedCount = allJobs.filter((j) => j.status === "Completed").length;
   const totalSites = allJobs.reduce((sum, j) => sum + j.processedSites, 0);
   const totalFailed = allJobs.reduce((sum, j) => sum + j.failedSites, 0);
-  const completedCount = allJobs.filter((j) => j.status === "Completed").length;
 
   if (selectedJob) {
     return <JobDetail job={selectedJob} onBack={() => setSelectedJob(null)} />;
@@ -59,9 +59,9 @@ export default function VersionsPage(): React.ReactElement {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Version Control</h1>
+          <h1 className="text-2xl font-bold">Recycle Bin</h1>
           <p className="text-sm text-muted-foreground">
-            File version cleanup results across SharePoint sites
+            Recycle bin cleanup results across SharePoint sites
           </p>
         </div>
         <button
@@ -70,7 +70,7 @@ export default function VersionsPage(): React.ReactElement {
           className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
         >
           <Play className="h-4 w-4" />
-          {triggering ? "Triggering..." : "Run Version Cleanup"}
+          {triggering ? "Triggering..." : "Run Recycle Bin Cleanup"}
         </button>
       </div>
 
@@ -78,7 +78,7 @@ export default function VersionsPage(): React.ReactElement {
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <div className="rounded-xl border border-border bg-card p-4 shadow-sm">
           <div className="flex items-center gap-2">
-            <FileStack className="h-4 w-4 text-primary" />
+            <Trash2 className="h-4 w-4 text-primary" />
             <p className="text-xs text-muted-foreground">Total Reclaimed</p>
           </div>
           <p className="mt-2 text-xl font-bold">
@@ -166,7 +166,7 @@ export default function VersionsPage(): React.ReactElement {
                       colSpan={6}
                       className="px-4 py-8 text-center text-sm text-muted-foreground"
                     >
-                      No version cleanup runs found
+                      No recycle bin cleanup runs found
                     </td>
                   </tr>
                 ) : (

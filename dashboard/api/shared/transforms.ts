@@ -34,12 +34,23 @@ export function mapJobRunEntity(entity: JobRunEntity) {
       ? new Date(details.CompletedAt).getTime() - new Date(details.StartedAt).getTime()
       : undefined;
 
+  // Detect stalled jobs: Running for more than 4 hours
+  let status = entity.Status ?? "";
+  if (status === "Running" && details.StartedAt) {
+    const startedMs = new Date(details.StartedAt).getTime();
+    const now = Date.now();
+    const fourHoursMs = 4 * 60 * 60 * 1000;
+    if (!isNaN(startedMs) && now - startedMs > fourHoursMs) {
+      status = "Stalled";
+    }
+  }
+
   return {
     partitionKey: String(entity.partitionKey ?? ""),
     rowKey: String(entity.rowKey ?? ""),
     runId: String(entity.rowKey ?? ""),
     jobType: String(entity.partitionKey ?? ""),
-    status: entity.Status ?? "",
+    status,
     startedAt: details.StartedAt ?? (raw.UpdatedAt as string) ?? "",
     completedAt: details.CompletedAt ?? undefined,
     durationMs,

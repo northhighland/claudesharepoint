@@ -4,7 +4,23 @@ import { useState, useEffect } from "react";
 import { Save, Loader2 } from "lucide-react";
 import { usePolling } from "@/hooks/use-polling";
 import { fetchSettings, updateSettings } from "@/lib/api";
-import type { AppSettings } from "@/lib/types";
+import type { AppSettings, JobSchedule, JobType } from "@/lib/types";
+import { JOB_TYPE_DISPLAY_NAMES } from "@/lib/types";
+
+const DEFAULT_SCHEDULE: JobSchedule = {
+  enabled: false,
+  frequency: "daily",
+  timeUtc: "02:00",
+};
+
+const JOB_TYPES: JobType[] = [
+  "VersionCleanup",
+  "RecycleBinCleaner",
+  "QuotaManager",
+  "StaleSiteDetector",
+];
+
+const DAYS_OF_WEEK = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 export default function SettingsPage(): React.ReactElement {
   const { data: settings, isLoading, mutate } = usePolling("settings", fetchSettings, 0);
@@ -14,6 +30,12 @@ export default function SettingsPage(): React.ReactElement {
     quotaIncrementGB: 25,
     teamsWebhookUrl: "",
     notificationEmail: "",
+    schedules: {
+      VersionCleanup: { ...DEFAULT_SCHEDULE },
+      RecycleBinCleaner: { ...DEFAULT_SCHEDULE },
+      QuotaManager: { ...DEFAULT_SCHEDULE },
+      StaleSiteDetector: { ...DEFAULT_SCHEDULE },
+    },
   });
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -21,21 +43,42 @@ export default function SettingsPage(): React.ReactElement {
   useEffect(() => {
     if (settings) {
       // API returns Record<string, string> — merge with defaults, coerce numbers
+      const rawSettings = settings as unknown as Record<string, string>;
+      const schedules = { ...form.schedules };
+      for (const jt of JOB_TYPES) {
+        const key = `Schedule${jt}`;
+        const raw = rawSettings[key];
+        if (raw) {
+          try {
+            schedules[jt] = { ...DEFAULT_SCHEDULE, ...JSON.parse(raw) };
+          } catch {
+            // Keep default if JSON is invalid
+          }
+        }
+      }
       setForm((prev) => ({
         expireAfterDays: Number(settings.expireAfterDays) || prev.expireAfterDays,
         maxMajorVersions: Number(settings.maxMajorVersions) || prev.maxMajorVersions,
         quotaIncrementGB: Number(settings.quotaIncrementGB) || prev.quotaIncrementGB,
         teamsWebhookUrl: settings.teamsWebhookUrl ?? prev.teamsWebhookUrl,
         notificationEmail: settings.notificationEmail ?? prev.notificationEmail,
+        schedules,
       }));
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [settings]);
 
   const handleSave = async (): Promise<void> => {
     setSaving(true);
     setSaved(false);
     try {
-      await updateSettings(form);
+      // Flatten schedules into individual ScheduleXxx keys for the API
+      const { schedules, ...rest } = form;
+      const payload: Record<string, string | number> = { ...rest };
+      for (const jt of JOB_TYPES) {
+        payload[`Schedule${jt}`] = JSON.stringify(schedules[jt]);
+      }
+      await updateSettings(payload as unknown as Partial<AppSettings>);
       mutate();
       setSaved(true);
       setTimeout(() => setSaved(false), 3000);
@@ -216,6 +259,106 @@ export default function SettingsPage(): React.ReactElement {
                 className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
               />
             </div>
+          </div>
+        </div>
+        {/* Schedules */}
+        <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
+          <h2 className="mb-4 text-lg font-semibold">Schedules</h2>
+          <p className="mb-4 text-xs text-muted-foreground">
+            Configure when each automation job runs. Times are in UTC.
+          </p>
+          <div className="space-y-4">
+            {JOB_TYPES.map((jt) => {
+              const sched = form.schedules[jt];
+              const updateSchedule = (patch: Partial<JobSchedule>) =>
+                setForm((f) => ({
+                  ...f,
+                  schedules: {
+                    ...f.schedules,
+                    [jt]: { ...f.schedules[jt], ...patch },
+                  },
+                }));
+              return (
+                <div
+                  key={jt}
+                  className="flex flex-wrap items-center gap-3 rounded-lg border border-border bg-background p-3"
+                >
+                  <label className="flex items-center gap-2 min-w-[180px]">
+                    <input
+                      type="checkbox"
+                      checked={sched.enabled}
+                      onChange={(e) =>
+                        updateSchedule({ enabled: e.target.checked })
+                      }
+                      className="h-4 w-4 rounded border-border"
+                    />
+                    <span className="text-sm font-medium">
+                      {JOB_TYPE_DISPLAY_NAMES[jt]}
+                    </span>
+                  </label>
+
+                  <select
+                    value={sched.frequency}
+                    onChange={(e) =>
+                      updateSchedule({
+                        frequency: e.target.value as JobSchedule["frequency"],
+                      })
+                    }
+                    disabled={!sched.enabled}
+                    className="rounded-lg border border-border bg-background px-2 py-1.5 text-sm disabled:opacity-50"
+                  >
+                    <option value="daily">Daily</option>
+                    <option value="weekly">Weekly</option>
+                    <option value="monthly">Monthly</option>
+                  </select>
+
+                  {sched.frequency === "weekly" && (
+                    <select
+                      value={sched.dayOfWeek ?? 0}
+                      onChange={(e) =>
+                        updateSchedule({ dayOfWeek: Number(e.target.value) })
+                      }
+                      disabled={!sched.enabled}
+                      className="rounded-lg border border-border bg-background px-2 py-1.5 text-sm disabled:opacity-50"
+                    >
+                      {DAYS_OF_WEEK.map((d, i) => (
+                        <option key={d} value={i}>
+                          {d}
+                        </option>
+                      ))}
+                    </select>
+                  )}
+
+                  {sched.frequency === "monthly" && (
+                    <select
+                      value={sched.dayOfMonth ?? 1}
+                      onChange={(e) =>
+                        updateSchedule({ dayOfMonth: Number(e.target.value) })
+                      }
+                      disabled={!sched.enabled}
+                      className="rounded-lg border border-border bg-background px-2 py-1.5 text-sm disabled:opacity-50"
+                    >
+                      {Array.from({ length: 28 }, (_, i) => i + 1).map((d) => (
+                        <option key={d} value={d}>
+                          Day {d}
+                        </option>
+                      ))}
+                    </select>
+                  )}
+
+                  <input
+                    type="time"
+                    value={sched.timeUtc}
+                    onChange={(e) =>
+                      updateSchedule({ timeUtc: e.target.value })
+                    }
+                    disabled={!sched.enabled}
+                    className="rounded-lg border border-border bg-background px-2 py-1.5 text-sm disabled:opacity-50"
+                  />
+                  <span className="text-xs text-muted-foreground">UTC</span>
+                </div>
+              );
+            })}
           </div>
         </div>
       </div>

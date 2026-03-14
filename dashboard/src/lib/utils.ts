@@ -49,6 +49,8 @@ export function getStatusColor(status: string): string {
     case "queued":
     case "pending":
       return "bg-amber-500/15 text-amber-400";
+    case "stalled":
+      return "bg-zinc-500/15 text-zinc-400";
     case "skipped":
       return "bg-zinc-500/15 text-zinc-400";
     default:

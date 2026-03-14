@@ -24,14 +24,14 @@ export function StatsCards({ overview, isLoading }: StatsCardsProps): React.Reac
       value: overview ? formatBytes(overview.totalStorageReclaimedBytes) : "0 B",
       icon: <HardDrive className="h-5 w-5" />,
       color: "bg-primary/10 text-primary",
-      href: "/jobs",
+      href: "/versions",
     },
     {
       label: "Sites Processed",
       value: (overview?.totalSitesProcessed ?? 0).toLocaleString(),
       icon: <Globe className="h-5 w-5" />,
       color: "bg-sky-500/10 text-sky-400",
-      href: "/jobs",
+      href: "/versions",
     },
     {
       label: "Cost Avoidance",
