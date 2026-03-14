@@ -1,33 +1,61 @@
 import {
   JobRunEntity,
-  VersionCleanupResultEntity,
   StaleSiteEntity,
   QuotaStatusEntity,
   RecycleBinResultEntity,
 } from "./types";
 
+interface JobDetails {
+  StartedAt?: string;
+  CompletedAt?: string;
+  DurationMinutes?: number;
+  DryRun?: boolean;
+  JobsSucceeded?: number;
+  JobsFailed?: number;
+}
+
+function parseDetails(detailsStr?: string): JobDetails {
+  if (!detailsStr) return {};
+  try {
+    return JSON.parse(detailsStr);
+  } catch {
+    return {};
+  }
+}
+
 export function mapJobRunEntity(entity: JobRunEntity) {
+  // Table Storage entity has Details as a JSON string containing dates
+  const raw = entity as Record<string, unknown>;
+  const details = parseDetails(raw.Details as string | undefined);
+  const durationMs = details.DurationMinutes
+    ? Math.round(details.DurationMinutes * 60 * 1000)
+    : details.StartedAt && details.CompletedAt
+      ? new Date(details.CompletedAt).getTime() - new Date(details.StartedAt).getTime()
+      : undefined;
+
   return {
     partitionKey: String(entity.partitionKey ?? ""),
     rowKey: String(entity.rowKey ?? ""),
-    runId: entity.RunId ?? String(entity.rowKey ?? ""),
-    jobType: entity.JobType ?? String(entity.partitionKey ?? ""),
+    runId: String(entity.rowKey ?? ""),
+    jobType: String(entity.partitionKey ?? ""),
     status: entity.Status ?? "",
-    startedAt: entity.StartTime ?? "",
-    completedAt: entity.EndTime ?? undefined,
-    durationMs: entity.StartTime && entity.EndTime
-      ? new Date(entity.EndTime).getTime() - new Date(entity.StartTime).getTime()
-      : undefined,
+    startedAt: details.StartedAt ?? (raw.UpdatedAt as string) ?? "",
+    completedAt: details.CompletedAt ?? undefined,
+    durationMs,
     totalSites: entity.TotalSites ?? 0,
-    processedSites: entity.ProcessedSites ?? 0,
-    failedSites: entity.FailedSites ?? 0,
+    processedSites: (details.JobsSucceeded ?? 0) + (details.JobsFailed ?? 0),
+    failedSites: details.JobsFailed ?? 0,
     skippedSites: 0,
     totalSpaceReclaimedBytes: entity.SpaceReclaimedGB
       ? Math.round(entity.SpaceReclaimedGB * 1024 * 1024 * 1024)
       : 0,
     errorMessage: entity.ErrorMessage ?? undefined,
     triggeredBy: "Automation",
-    isDryRun: entity.DryRun ?? false,
+    isDryRun: entity.DryRun ?? details.DryRun ?? false,
+    totalWaves: (raw.TotalWaves as number) ?? undefined,
+    completedWaves: (raw.CompletedWaves as number) ?? undefined,
+    jobsSucceeded: details.JobsSucceeded ?? undefined,
+    jobsFailed: details.JobsFailed ?? undefined,
   };
 }
 

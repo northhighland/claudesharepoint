@@ -74,8 +74,9 @@ async function handleListJobs(
 
   const jobs = await queryEntities<JobRunEntity>("JobRuns", filter, top);
 
-  // Sort by StartTime descending
-  jobs.sort((a, b) => (b.StartTime ?? "").localeCompare(a.StartTime ?? ""));
+  // Sort by UpdatedAt descending (StartTime is inside Details JSON, not a top-level field)
+  const raw = jobs as Array<Record<string, unknown>>;
+  raw.sort((a, b) => ((b.UpdatedAt as string) ?? "").localeCompare((a.UpdatedAt as string) ?? ""));
 
   context.res = jsonResponse(jobs.map(mapJobRunEntity));
 }

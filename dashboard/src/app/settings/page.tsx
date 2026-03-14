@@ -20,7 +20,14 @@ export default function SettingsPage(): React.ReactElement {
 
   useEffect(() => {
     if (settings) {
-      setForm(settings);
+      // API returns Record<string, string> — merge with defaults, coerce numbers
+      setForm((prev) => ({
+        expireAfterDays: Number(settings.expireAfterDays) || prev.expireAfterDays,
+        maxMajorVersions: Number(settings.maxMajorVersions) || prev.maxMajorVersions,
+        quotaIncrementGB: Number(settings.quotaIncrementGB) || prev.quotaIncrementGB,
+        teamsWebhookUrl: settings.teamsWebhookUrl ?? prev.teamsWebhookUrl,
+        notificationEmail: settings.notificationEmail ?? prev.notificationEmail,
+      }));
     }
   }, [settings]);
 
