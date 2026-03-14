@@ -1,0 +1,66 @@
+import { JobRunEntity, StaleSiteEntity, QuotaStatusEntity, RecycleBinResultEntity } from "./types";
+export declare function mapJobRunEntity(entity: JobRunEntity): {
+    partitionKey: string;
+    rowKey: string;
+    runId: string;
+    jobType: string;
+    status: string;
+    startedAt: string;
+    completedAt: string | undefined;
+    durationMs: number | undefined;
+    totalSites: number;
+    processedSites: number;
+    failedSites: number;
+    skippedSites: number;
+    totalSpaceReclaimedBytes: number;
+    errorMessage: string | undefined;
+    triggeredBy: string;
+    isDryRun: boolean;
+    totalWaves: number;
+    completedWaves: number;
+    jobsSucceeded: number | undefined;
+    jobsFailed: number | undefined;
+};
+export declare function mapStaleSiteEntity(entity: StaleSiteEntity): {
+    partitionKey: string;
+    rowKey: string;
+    siteUrl: string;
+    siteName: string;
+    stalenessScore: number;
+    category: string;
+    lastActivityDate: string;
+    lastContentModified: string;
+    ownerEmail: string;
+    storageUsedBytes: number;
+    memberCount: number;
+    adminAction: string | null;
+    actionDate: string | undefined;
+    analyzedAt: string;
+};
+export declare function mapQuotaStatusEntity(entity: QuotaStatusEntity): {
+    partitionKey: string;
+    rowKey: string;
+    siteUrl: string;
+    siteName: string;
+    quotaBytes: number;
+    usedBytes: number;
+    percentUsed: number;
+    autoIncreased: boolean;
+    previousQuotaBytes: undefined;
+    newQuotaBytes: number | undefined;
+    increasedAt: string | undefined;
+    lastCheckedAt: string;
+};
+export declare function mapRecycleBinResultEntity(entity: RecycleBinResultEntity): {
+    partitionKey: string;
+    rowKey: string;
+    runId: string;
+    siteUrl: string;
+    siteName: string;
+    status: string;
+    itemsDeleted: number;
+    spaceReclaimedBytes: number;
+    errorMessage: string | undefined;
+    processedAt: string;
+};
+//# sourceMappingURL=transforms.d.ts.map

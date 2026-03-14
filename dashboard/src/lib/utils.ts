@@ -23,7 +23,10 @@ export function formatDuration(ms: number): string {
 }
 
 export function formatDate(dateString: string): string {
-  return new Date(dateString).toLocaleDateString("en-US", {
+  if (!dateString) return "--";
+  const date = new Date(dateString);
+  if (isNaN(date.getTime())) return "--";
+  return date.toLocaleDateString("en-US", {
     month: "short",
     day: "numeric",
     year: "numeric",
