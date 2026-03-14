@@ -12,10 +12,8 @@ export default function OverviewPage(): React.ReactElement {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">Overview</h1>
-        <p className="text-sm text-muted-foreground">
-          claudesharepoint storage management dashboard
-        </p>
+        <p className="text-[11px] font-medium uppercase tracking-widest text-[#6B7280]">DASHBOARD</p>
+        <h1 className="text-xl font-semibold tracking-tight text-[#F9FAFB]">Overview</h1>
       </div>
 
       <StatsCards overview={overview} isLoading={isLoading} />
