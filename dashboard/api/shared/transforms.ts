@@ -1,5 +1,6 @@
 import {
   JobRunEntity,
+  VersionCleanupResultEntity,
   StaleSiteEntity,
   QuotaStatusEntity,
   RecycleBinResultEntity,
@@ -56,6 +57,28 @@ export function mapJobRunEntity(entity: JobRunEntity) {
     completedWaves: (raw.CompletedWaves as number) ?? undefined,
     jobsSucceeded: details.JobsSucceeded ?? undefined,
     jobsFailed: details.JobsFailed ?? undefined,
+  };
+}
+
+export function mapVersionCleanupResultEntity(entity: VersionCleanupResultEntity) {
+  return {
+    partitionKey: String(entity.partitionKey ?? ""),
+    rowKey: String(entity.rowKey ?? ""),
+    runId: entity.RunId ?? String(entity.partitionKey ?? ""),
+    siteUrl: entity.SiteUrl ?? "",
+    siteName: entity.SiteTitle ?? "",
+    status: entity.Status ?? "Success",
+    filesScanned: entity.FilesScanned ?? 0,
+    filesWithVersions: entity.FilesWithVersions ?? 0,
+    versionsFound: entity.VersionsFound ?? 0,
+    versionsDeleted: entity.VersionsDeleted ?? entity.VersionsRemoved ?? 0,
+    spaceReclaimedBytes: entity.SpaceReclaimedMB
+      ? Math.round(entity.SpaceReclaimedMB * 1024 * 1024)
+      : 0,
+    librariesProcessed: entity.LibrariesProcessed ?? 0,
+    isDryRun: entity.DryRun ?? false,
+    errorMessage: entity.ErrorMessage ?? undefined,
+    processedAt: entity.CompletedAt ?? entity.ProcessedAt ?? "",
   };
 }
 

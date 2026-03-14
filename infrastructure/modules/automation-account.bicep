@@ -38,8 +38,8 @@ resource pnpModule 'Microsoft.Automation/automationAccounts/powershell72Modules@
 var automationVariables = [
   { name: 'ExpireAfterDays', value: '90', description: 'Days after which versions expire' }
   { name: 'MaxMajorVersions', value: '100', description: 'Maximum major versions to keep per file' }
-  { name: 'BatchSize', value: '100', description: 'Sites per processing batch' }
-  { name: 'WaveSize', value: '30', description: 'Concurrent child runbooks per wave' }
+  { name: 'BatchSize', value: '500', description: 'Sites per processing batch' }
+  { name: 'WaveSize', value: '5', description: 'Concurrent child runbooks per wave' }
   { name: 'DisableSchedule', value: 'false', description: 'Emergency stop for scheduled execution' }
   { name: 'QuotaIncrementGB', value: '25', description: 'GB to add when quota exceeds 90%' }
   { name: 'QuotaAlertThreshold', value: '95', description: 'Percentage threshold for quota alerts' }

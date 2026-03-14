@@ -1,4 +1,4 @@
-import { JobRunEntity, StaleSiteEntity, QuotaStatusEntity, RecycleBinResultEntity } from "./types";
+import { JobRunEntity, VersionCleanupResultEntity, StaleSiteEntity, QuotaStatusEntity, RecycleBinResultEntity } from "./types";
 export declare function mapJobRunEntity(entity: JobRunEntity): {
     partitionKey: string;
     rowKey: string;
@@ -20,6 +20,23 @@ export declare function mapJobRunEntity(entity: JobRunEntity): {
     completedWaves: number;
     jobsSucceeded: number | undefined;
     jobsFailed: number | undefined;
+};
+export declare function mapVersionCleanupResultEntity(entity: VersionCleanupResultEntity): {
+    partitionKey: string;
+    rowKey: string;
+    runId: string;
+    siteUrl: string;
+    siteName: string;
+    status: string;
+    filesScanned: number;
+    filesWithVersions: number;
+    versionsFound: number;
+    versionsDeleted: number;
+    spaceReclaimedBytes: number;
+    librariesProcessed: number;
+    isDryRun: boolean;
+    errorMessage: string | undefined;
+    processedAt: string;
 };
 export declare function mapStaleSiteEntity(entity: StaleSiteEntity): {
     partitionKey: string;

@@ -1,6 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.mapJobRunEntity = mapJobRunEntity;
+exports.mapVersionCleanupResultEntity = mapVersionCleanupResultEntity;
 exports.mapStaleSiteEntity = mapStaleSiteEntity;
 exports.mapQuotaStatusEntity = mapQuotaStatusEntity;
 exports.mapRecycleBinResultEntity = mapRecycleBinResultEntity;
@@ -46,6 +47,27 @@ function mapJobRunEntity(entity) {
         completedWaves: raw.CompletedWaves ?? undefined,
         jobsSucceeded: details.JobsSucceeded ?? undefined,
         jobsFailed: details.JobsFailed ?? undefined,
+    };
+}
+function mapVersionCleanupResultEntity(entity) {
+    return {
+        partitionKey: String(entity.partitionKey ?? ""),
+        rowKey: String(entity.rowKey ?? ""),
+        runId: entity.RunId ?? String(entity.partitionKey ?? ""),
+        siteUrl: entity.SiteUrl ?? "",
+        siteName: entity.SiteTitle ?? "",
+        status: entity.Status ?? "Success",
+        filesScanned: entity.FilesScanned ?? 0,
+        filesWithVersions: entity.FilesWithVersions ?? 0,
+        versionsFound: entity.VersionsFound ?? 0,
+        versionsDeleted: entity.VersionsDeleted ?? entity.VersionsRemoved ?? 0,
+        spaceReclaimedBytes: entity.SpaceReclaimedMB
+            ? Math.round(entity.SpaceReclaimedMB * 1024 * 1024)
+            : 0,
+        librariesProcessed: entity.LibrariesProcessed ?? 0,
+        isDryRun: entity.DryRun ?? false,
+        errorMessage: entity.ErrorMessage ?? undefined,
+        processedAt: entity.CompletedAt ?? entity.ProcessedAt ?? "",
     };
 }
 function mapStaleSiteEntity(entity) {

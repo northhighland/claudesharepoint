@@ -16,12 +16,20 @@ export interface JobRunEntity extends TableEntity {
 
 export interface VersionCleanupResultEntity extends TableEntity {
   SiteUrl: string;
+  SiteTitle?: string;
   RunId: string;
-  VersionsRemoved: number;
+  FilesScanned?: number;
+  FilesWithVersions?: number;
+  VersionsFound?: number;
+  VersionsRemoved?: number;
+  VersionsDeleted?: number;
   SpaceReclaimedMB: number;
+  LibrariesProcessed?: number;
+  DryRun?: boolean;
   Status: string;
   ErrorMessage?: string;
-  ProcessedAt: string;
+  ProcessedAt?: string;
+  CompletedAt?: string;
 }
 
 export interface StaleSiteEntity extends TableEntity {

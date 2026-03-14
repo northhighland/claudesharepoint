@@ -3,11 +3,12 @@ import { queryEntities, getEntity } from "../shared/table-client";
 import { jsonResponse, errorResponse } from "../shared/response";
 import {
   JobRunEntity,
+  VersionCleanupResultEntity,
   VALID_JOB_TYPES,
   ValidJobType,
 } from "../shared/types";
 import { TableEntity, odata } from "@azure/data-tables";
-import { mapJobRunEntity } from "../shared/transforms";
+import { mapJobRunEntity, mapVersionCleanupResultEntity } from "../shared/transforms";
 
 /** Map job types to their results table names. */
 const RESULTS_TABLE_MAP: Record<string, string> = {
@@ -106,21 +107,30 @@ async function handleGetJob(
 
   // Fetch per-site results for this run
   const resultsTableName = RESULTS_TABLE_MAP[job.JobType];
-  let results: TableEntity[] = [];
+  let mappedResults: unknown[] = [];
 
   if (resultsTableName) {
     try {
       const runId = job.rowKey ?? "";
-      results = await queryEntities<TableEntity>(
+      const rawResults = await queryEntities<TableEntity>(
         resultsTableName,
         odata`PartitionKey eq ${runId}`
       );
+
+      // Map results based on job type
+      if (job.JobType === "VersionCleanup") {
+        mappedResults = (rawResults as unknown as VersionCleanupResultEntity[]).map(
+          mapVersionCleanupResultEntity
+        );
+      } else {
+        mappedResults = rawResults;
+      }
     } catch {
       // Results table may not exist; return empty array
     }
   }
 
-  context.res = jsonResponse({ job: mapJobRunEntity(job), results });
+  context.res = jsonResponse({ job: mapJobRunEntity(job), results: mappedResults });
 }
 
 export default handler;
