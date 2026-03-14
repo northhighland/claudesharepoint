@@ -15,6 +15,9 @@ param enableLogAnalytics bool = true
 @description('Email for alert notifications (optional). IMPORTANT: Must be set to a non-empty value to enable metric alerts (action group + job failure alert). Pass via deploy.ps1 -AlertRecipients or CI/CD parameters.')
 param alertRecipients string = ''
 
+@description('Comma-separated admin emails for dashboard RBAC (e.g. "admin@company.com,user2@company.com")')
+param adminUsers string = ''
+
 @description('Log Analytics retention in days')
 @minValue(7)
 @maxValue(730)
@@ -96,6 +99,7 @@ module functionApp 'modules/function-app.bicep' = {
   params: {
     clientCode: clientCode
     location: location
+    adminUsers: adminUsers
   }
 }
 

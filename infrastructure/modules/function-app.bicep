@@ -10,6 +10,9 @@ param storageAccountName string = 'stcsp${clientCode}'
 @description('Automation account name')
 param automationAccountName string = 'aa-csp-${clientCode}'
 
+@description('Comma-separated list of admin email addresses for dashboard RBAC')
+param adminUsers string = ''
+
 // --- Basic App Service Plan (Windows, B1) ---
 // Windows avoids Linux Kudu/SCM storage dependency issue.
 // No runtime storage account needed — all 6 functions are HTTP-only triggers.
@@ -78,6 +81,10 @@ resource functionApp 'Microsoft.Web/sites@2023-12-01' = {
         {
           name: 'AZURE_AUTOMATION_ACCOUNT'
           value: automationAccountName
+        }
+        {
+          name: 'ADMIN_USERS'
+          value: adminUsers
         }
       ]
     }
