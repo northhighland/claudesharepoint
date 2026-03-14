@@ -81,15 +81,15 @@ export default function JobsPage(): React.ReactElement {
           {triggerOpen && (
             <>
               <div
-                className="fixed inset-0 z-10"
+                className="fixed inset-0 z-40"
                 onClick={() => setTriggerOpen(false)}
               />
-              <div className="absolute right-0 z-20 mt-1 w-48 glass-card rounded-lg py-1 shadow-lg">
+              <div className="absolute right-0 z-50 mt-1 w-56 rounded-lg border border-border bg-card py-1 shadow-xl">
                 {JOB_TYPES.map((type) => (
                   <button
                     key={type}
                     onClick={() => handleTrigger(type)}
-                    className="w-full px-4 py-2 text-left text-sm hover:bg-accent"
+                    className="w-full px-4 py-2.5 text-left text-sm text-foreground hover:bg-primary/10 hover:text-primary transition-colors"
                   >
                     {JOB_TYPE_DISPLAY_NAMES[type]}
                   </button>
