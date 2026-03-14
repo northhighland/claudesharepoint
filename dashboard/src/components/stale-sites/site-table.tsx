@@ -1,9 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import React, { useState } from "react";
 import { ArrowUpDown } from "lucide-react";
 import { cn, formatDate, formatBytes } from "@/lib/utils";
 import { StalenessScore } from "./staleness-score";
+import { ScoreBreakdown } from "./score-breakdown";
+import { NotifyButton } from "./notify-button";
 import { updateStaleSiteAction } from "@/lib/api";
 import type { StaleSiteRecommendation } from "@/lib/types";
 
@@ -22,6 +24,7 @@ export function SiteTable({
   onActionComplete,
 }: SiteTableProps): React.ReactElement {
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
   const [sortKey, setSortKey] = useState<SortKey>("stalenessScore");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
   const [actionInProgress, setActionInProgress] = useState(false);
@@ -53,6 +56,15 @@ export function SiteTable({
     } else {
       setSelected(new Set(sites.map((s) => s.siteUrl)));
     }
+  };
+
+  const toggleExpand = (siteUrl: string): void => {
+    setExpandedRows((prev) => {
+      const next = new Set(prev);
+      if (next.has(siteUrl)) next.delete(siteUrl);
+      else next.add(siteUrl);
+      return next;
+    });
   };
 
   const handleBulkAction = async (action: "Keep" | "Archive" | "Delete"): Promise<void> => {
@@ -102,7 +114,7 @@ export function SiteTable({
 
   if (isLoading) {
     return (
-      <div className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
+      <div className="glass-card rounded-xl shadow-sm">
         <div className="space-y-2 p-4">
           {[1, 2, 3, 4, 5].map((i) => (
             <div key={i} className="h-12 animate-pulse rounded bg-muted" />
@@ -116,7 +128,7 @@ export function SiteTable({
     <div className="space-y-4">
       {/* Bulk actions */}
       {selected.size > 0 && (
-        <div className="flex items-center gap-3 rounded-lg border border-border bg-card p-3">
+        <div className="glass-card rounded-lg p-3 flex items-center gap-3">
           <span className="text-sm text-muted-foreground">
             {selected.size} site{selected.size !== 1 ? "s" : ""} selected
           </span>
@@ -146,7 +158,7 @@ export function SiteTable({
         </div>
       )}
 
-      <div className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
+      <div className="glass-card rounded-xl shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead className="border-b border-border bg-muted/50">
@@ -167,13 +179,16 @@ export function SiteTable({
                 <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">
                   Admin Action
                 </th>
+                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                  Notify
+                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
               {sorted.length === 0 ? (
                 <tr>
                   <td
-                    colSpan={7}
+                    colSpan={8}
                     className="px-4 py-8 text-center text-sm text-muted-foreground"
                   >
                     No stale sites found
@@ -181,63 +196,82 @@ export function SiteTable({
                 </tr>
               ) : (
                 sorted.map((site) => (
-                  <tr key={site.siteUrl} className="hover:bg-accent/50">
-                    <td className="px-4 py-3">
-                      <input
-                        type="checkbox"
-                        checked={selected.has(site.siteUrl)}
-                        onChange={() => toggleSelect(site.siteUrl)}
-                        className="rounded border-border"
-                      />
-                    </td>
-                    <td className="px-4 py-3 text-sm">
-                      <div className="font-medium">{site.siteName}</div>
-                      <div className="text-xs text-muted-foreground">{site.ownerEmail}</div>
-                    </td>
-                    <td className="min-w-[200px] px-4 py-3">
-                      <StalenessScore score={site.stalenessScore} category={site.category} />
-                    </td>
-                    <td className="whitespace-nowrap px-4 py-3 text-sm">
-                      <span
-                        className={cn(
-                          "rounded-full px-2 py-0.5 text-xs font-medium",
-                          site.category === "Active"
-                            ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300"
-                            : site.category === "Low Activity"
-                              ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300"
-                              : site.category === "Stale"
-                                ? "bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-300"
-                                : "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300"
-                        )}
-                      >
-                        {site.category}
-                      </span>
-                    </td>
-                    <td className="whitespace-nowrap px-4 py-3 text-sm text-muted-foreground">
-                      {formatDate(site.lastActivityDate)}
-                    </td>
-                    <td className="whitespace-nowrap px-4 py-3 text-sm">
-                      {formatBytes(site.storageUsedBytes)}
-                    </td>
-                    <td className="whitespace-nowrap px-4 py-3 text-sm">
-                      {site.adminAction ? (
+                  <React.Fragment key={site.siteUrl}>
+                    <tr
+                      onClick={() => toggleExpand(site.siteUrl)}
+                      className="cursor-pointer hover:bg-accent/50"
+                    >
+                      <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
+                        <input
+                          type="checkbox"
+                          checked={selected.has(site.siteUrl)}
+                          onChange={() => toggleSelect(site.siteUrl)}
+                          className="rounded border-border"
+                        />
+                      </td>
+                      <td className="px-4 py-3 text-sm">
+                        <div className="font-medium">{site.siteName}</div>
+                        <div className="text-xs text-muted-foreground">{site.ownerEmail}</div>
+                      </td>
+                      <td className="min-w-[200px] px-4 py-3">
+                        <StalenessScore score={site.stalenessScore} category={site.category} />
+                      </td>
+                      <td className="whitespace-nowrap px-4 py-3 text-sm">
                         <span
                           className={cn(
                             "rounded-full px-2 py-0.5 text-xs font-medium",
-                            site.adminAction === "Keep"
-                              ? "bg-green-100 text-green-800"
-                              : site.adminAction === "Archive"
-                                ? "bg-yellow-100 text-yellow-800"
-                                : "bg-red-100 text-red-800"
+                            site.category === "Active"
+                              ? "bg-emerald-500/15 text-emerald-400"
+                              : site.category === "Low Activity"
+                                ? "bg-amber-500/15 text-amber-400"
+                                : site.category === "Stale"
+                                  ? "bg-orange-500/15 text-orange-400"
+                                  : "bg-red-500/15 text-red-400"
                           )}
                         >
-                          {site.adminAction}
+                          {site.category}
                         </span>
-                      ) : (
-                        <span className="text-xs text-muted-foreground">Pending</span>
-                      )}
-                    </td>
-                  </tr>
+                      </td>
+                      <td className="whitespace-nowrap px-4 py-3 text-sm text-muted-foreground">
+                        {formatDate(site.lastActivityDate)}
+                      </td>
+                      <td className="whitespace-nowrap px-4 py-3 text-sm">
+                        {formatBytes(site.storageUsedBytes)}
+                      </td>
+                      <td className="whitespace-nowrap px-4 py-3 text-sm">
+                        {site.adminAction ? (
+                          <span
+                            className={cn(
+                              "rounded-full px-2 py-0.5 text-xs font-medium",
+                              site.adminAction === "Keep"
+                                ? "bg-emerald-500/15 text-emerald-400"
+                                : site.adminAction === "Archive"
+                                  ? "bg-amber-500/15 text-amber-400"
+                                  : "bg-red-500/15 text-red-400"
+                            )}
+                          >
+                            {site.adminAction}
+                          </span>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">Pending</span>
+                        )}
+                      </td>
+                      <td className="whitespace-nowrap px-4 py-3" onClick={(e) => e.stopPropagation()}>
+                        <NotifyButton
+                          siteUrl={site.siteUrl}
+                          siteName={site.siteName}
+                          ownerEmail={site.ownerEmail}
+                        />
+                      </td>
+                    </tr>
+                    {expandedRows.has(site.siteUrl) && (
+                      <tr>
+                        <td colSpan={8} className="px-4 py-0">
+                          <ScoreBreakdown site={site} />
+                        </td>
+                      </tr>
+                    )}
+                  </React.Fragment>
                 ))
               )}
             </tbody>

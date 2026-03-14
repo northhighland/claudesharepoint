@@ -1,7 +1,7 @@
 "use client";
 
-import { HardDrive, Play, Globe, Archive, TrendingUp, TrendingDown } from "lucide-react";
-import { cn, formatBytes } from "@/lib/utils";
+import { HardDrive, Globe, DollarSign, Archive } from "lucide-react";
+import { formatBytes, formatNumber } from "@/lib/utils";
 import type { DashboardOverview } from "@/lib/types";
 
 interface StatsCardsProps {
@@ -9,83 +9,63 @@ interface StatsCardsProps {
   isLoading: boolean;
 }
 
-interface StatCardProps {
-  title: string;
-  value: string;
-  trend: number;
-  icon: React.ReactNode;
-  isLoading: boolean;
-}
-
-function StatCard({ title, value, trend, icon, isLoading }: StatCardProps): React.ReactElement {
-  const isPositive = trend >= 0;
-
-  return (
-    <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
-      <div className="flex items-center justify-between">
-        <p className="text-sm font-medium text-muted-foreground">{title}</p>
-        <div className="rounded-lg bg-primary/10 p-2 text-primary">{icon}</div>
-      </div>
-      <div className="mt-4">
-        {isLoading ? (
-          <div className="h-8 w-24 animate-pulse rounded bg-muted" />
-        ) : (
-          <p className="text-2xl font-bold">{value}</p>
-        )}
-      </div>
-      <div className="mt-2 flex items-center gap-1 text-sm">
-        {isLoading ? (
-          <div className="h-4 w-16 animate-pulse rounded bg-muted" />
-        ) : (
-          <>
-            {isPositive ? (
-              <TrendingUp className="h-4 w-4 text-green-600" />
-            ) : (
-              <TrendingDown className="h-4 w-4 text-red-600" />
-            )}
-            <span className={cn(isPositive ? "text-green-600" : "text-red-600")}>
-              {isPositive ? "+" : ""}
-              {trend.toFixed(1)}%
-            </span>
-            <span className="text-muted-foreground">vs last period</span>
-          </>
-        )}
-      </div>
-    </div>
-  );
-}
+const ANIMATION_CLASSES = [
+  "animate-fade-in-up",
+  "animate-fade-in-up-delay-1",
+  "animate-fade-in-up-delay-2",
+  "animate-fade-in-up-delay-3",
+];
 
 export function StatsCards({ overview, isLoading }: StatsCardsProps): React.ReactElement {
+  const cards = [
+    {
+      label: "Storage Reclaimed",
+      value: overview ? formatBytes(overview.totalStorageReclaimedBytes) : "0 B",
+      icon: <HardDrive className="h-5 w-5" />,
+      color: "bg-primary/10 text-primary",
+    },
+    {
+      label: "Sites Processed",
+      value: (overview?.totalSitesProcessed ?? 0).toLocaleString(),
+      icon: <Globe className="h-5 w-5" />,
+      color: "bg-sky-500/10 text-sky-400",
+    },
+    {
+      label: "Cost Avoidance",
+      value: `$${formatNumber(overview?.costAvoidanceDollars ?? 0)}`,
+      icon: <DollarSign className="h-5 w-5" />,
+      color: "bg-emerald-500/10 text-emerald-400",
+    },
+    {
+      label: "Stale Sites Found",
+      value: (overview?.staleSitesFound ?? 0).toLocaleString(),
+      icon: <Archive className="h-5 w-5" />,
+      color: "bg-amber-500/10 text-amber-400",
+    },
+  ];
+
   return (
     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-      <StatCard
-        title="Storage Reclaimed"
-        value={overview ? formatBytes(overview.totalStorageReclaimedBytes) : "0 B"}
-        trend={overview?.storageReclaimedTrendPercent ?? 0}
-        icon={<HardDrive className="h-4 w-4" />}
-        isLoading={isLoading}
-      />
-      <StatCard
-        title="Active Jobs"
-        value={String(overview?.activeJobs ?? 0)}
-        trend={overview?.activeJobsTrendPercent ?? 0}
-        icon={<Play className="h-4 w-4" />}
-        isLoading={isLoading}
-      />
-      <StatCard
-        title="Sites Monitored"
-        value={overview?.sitesMonitored?.toLocaleString() ?? "0"}
-        trend={overview?.sitesMonitoredTrendPercent ?? 0}
-        icon={<Globe className="h-4 w-4" />}
-        isLoading={isLoading}
-      />
-      <StatCard
-        title="Stale Sites Found"
-        value={String(overview?.staleSitesFound ?? 0)}
-        trend={overview?.staleSitesTrendPercent ?? 0}
-        icon={<Archive className="h-4 w-4" />}
-        isLoading={isLoading}
-      />
+      {cards.map((card, i) => (
+        <div
+          key={card.label}
+          className={`glass-card rounded-xl p-5 ${ANIMATION_CLASSES[i]}`}
+        >
+          <div className="flex items-center justify-between">
+            <p className="text-xs uppercase tracking-wider text-muted-foreground">
+              {card.label}
+            </p>
+            <div className={`rounded-lg p-2 ${card.color}`}>{card.icon}</div>
+          </div>
+          <div className="mt-3">
+            {isLoading ? (
+              <div className="h-8 w-24 animate-pulse rounded bg-muted" />
+            ) : (
+              <p className="font-mono text-2xl font-bold">{card.value}</p>
+            )}
+          </div>
+        </div>
+      ))}
     </div>
   );
 }

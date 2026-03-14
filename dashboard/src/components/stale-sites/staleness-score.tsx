@@ -18,13 +18,13 @@ function getScoreColor(score: number): string {
 function getCategoryColor(category: string): string {
   switch (category) {
     case "Abandoned":
-      return "text-red-600 dark:text-red-400";
+      return "text-red-400";
     case "Stale":
-      return "text-orange-600 dark:text-orange-400";
+      return "text-orange-400";
     case "Low Activity":
-      return "text-yellow-600 dark:text-yellow-400";
+      return "text-amber-400";
     case "Active":
-      return "text-green-600 dark:text-green-400";
+      return "text-emerald-400";
     default:
       return "text-muted-foreground";
   }

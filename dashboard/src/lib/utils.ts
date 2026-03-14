@@ -39,19 +39,25 @@ export function getStatusColor(status: string): string {
   switch ((status ?? "").toLowerCase()) {
     case "completed":
     case "success":
-      return "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300";
+      return "bg-emerald-500/15 text-emerald-400";
     case "running":
     case "in_progress":
-      return "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300";
+      return "bg-sky-500/15 text-sky-400";
     case "failed":
     case "error":
-      return "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300";
+      return "bg-red-500/15 text-red-400";
     case "queued":
     case "pending":
-      return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300";
+      return "bg-amber-500/15 text-amber-400";
     case "skipped":
-      return "bg-zinc-100 text-zinc-800 dark:bg-zinc-900 dark:text-zinc-300";
+      return "bg-zinc-500/15 text-zinc-400";
     default:
-      return "bg-zinc-100 text-zinc-800 dark:bg-zinc-900 dark:text-zinc-300";
+      return "bg-zinc-500/15 text-zinc-400";
   }
+}
+
+export function formatNumber(num: number): string {
+  if (num >= 1000000) return `${(num / 1000000).toFixed(1)}M`;
+  if (num >= 1000) return `${(num / 1000).toFixed(1)}K`;
+  return num.toLocaleString();
 }

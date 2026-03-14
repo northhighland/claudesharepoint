@@ -1,7 +1,6 @@
 import type { Config } from "tailwindcss";
 
 const config: Config = {
-  darkMode: "class",
   content: [
     "./src/pages/**/*.{js,ts,jsx,tsx,mdx}",
     "./src/components/**/*.{js,ts,jsx,tsx,mdx}",
@@ -39,11 +38,30 @@ const config: Config = {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
+        // NH Brand colors
+        nh: {
+          navy: "hsl(var(--nh-navy))",
+          "navy-light": "hsl(var(--nh-navy-light))",
+          "navy-lighter": "hsl(var(--nh-navy-lighter))",
+          teal: "hsl(var(--nh-teal))",
+          coral: "hsl(var(--nh-coral))",
+          gold: "hsl(var(--nh-gold))",
+          purple: "hsl(var(--nh-purple))",
+        },
       },
       borderRadius: {
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
+      },
+      fontFamily: {
+        sans: ["var(--font-dm-sans)", "system-ui", "sans-serif"],
+        display: ["var(--font-playfair)", "Georgia", "serif"],
+        mono: ["var(--font-jetbrains)", "monospace"],
+      },
+      animation: {
+        "fade-in-up": "fadeInUp 0.4s ease-out both",
+        "pulse-slow": "pulse 3s ease-in-out infinite",
       },
     },
   },

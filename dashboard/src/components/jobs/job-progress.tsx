@@ -28,10 +28,10 @@ export function JobProgress({ job, compact = false }: JobProgressProps): React.R
           className={cn(
             "h-full rounded-full transition-all duration-500",
             isRunning
-              ? "animate-pulse bg-blue-500"
+              ? "animate-pulse bg-primary"
               : percent === 100
-                ? "bg-green-500"
-                : "bg-blue-500"
+                ? "bg-emerald-500"
+                : "bg-primary"
           )}
           style={{ width: `${Math.max(percent, isRunning ? 5 : 0)}%` }}
         />
@@ -49,10 +49,10 @@ export function JobProgress({ job, compact = false }: JobProgressProps): React.R
         {(succeeded > 0 || failed > 0) && (
           <span className="flex items-center gap-2">
             {succeeded > 0 && (
-              <span className="text-green-600">{succeeded} succeeded</span>
+              <span className="text-emerald-400">{succeeded} succeeded</span>
             )}
             {failed > 0 && (
-              <span className="text-red-600">{failed} failed</span>
+              <span className="text-red-400">{failed} failed</span>
             )}
           </span>
         )}

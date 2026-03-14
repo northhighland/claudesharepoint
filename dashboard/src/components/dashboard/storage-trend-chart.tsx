@@ -22,7 +22,7 @@ export function StorageTrendChart({
 }: StorageTrendChartProps): React.ReactElement {
   if (isLoading) {
     return (
-      <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
+      <div className="glass-card rounded-xl p-6">
         <h3 className="mb-4 text-sm font-medium text-muted-foreground">
           Storage Reclaimed (Last 30 Days)
         </h3>
@@ -36,7 +36,7 @@ export function StorageTrendChart({
   const chartData = data ?? [];
 
   return (
-    <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
+    <div className="glass-card rounded-xl p-6">
       <h3 className="mb-4 text-sm font-medium text-muted-foreground">
         Storage Reclaimed (Last 30 Days)
       </h3>
@@ -49,18 +49,18 @@ export function StorageTrendChart({
           <AreaChart data={chartData}>
             <defs>
               <linearGradient id="storageGradient" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="hsl(221, 83%, 53%)" stopOpacity={0.3} />
-                <stop offset="95%" stopColor="hsl(221, 83%, 53%)" stopOpacity={0} />
+                <stop offset="5%" stopColor="hsl(172, 100%, 39%)" stopOpacity={0.3} />
+                <stop offset="95%" stopColor="hsl(172, 100%, 39%)" stopOpacity={0} />
               </linearGradient>
             </defs>
             <CartesianGrid
               strokeDasharray="3 3"
-              className="stroke-border"
+              stroke="rgba(255,255,255,0.06)"
               vertical={false}
             />
             <XAxis
               dataKey="date"
-              className="text-xs"
+              tick={{ fill: "rgba(255,255,255,0.4)", fontSize: 12 }}
               tickLine={false}
               axisLine={false}
               tickFormatter={(value: string) =>
@@ -71,7 +71,7 @@ export function StorageTrendChart({
               }
             />
             <YAxis
-              className="text-xs"
+              tick={{ fill: "rgba(255,255,255,0.4)", fontSize: 12 }}
               tickLine={false}
               axisLine={false}
               tickFormatter={(value: number) => `${value} GB`}
@@ -95,7 +95,7 @@ export function StorageTrendChart({
             <Area
               type="monotone"
               dataKey="reclaimedGB"
-              stroke="hsl(221, 83%, 53%)"
+              stroke="hsl(172, 100%, 39%)"
               strokeWidth={2}
               fill="url(#storageGradient)"
             />

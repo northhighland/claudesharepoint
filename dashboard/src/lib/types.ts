@@ -109,6 +109,9 @@ export interface DashboardOverview {
   sitesMonitoredTrendPercent: number;
   staleSitesFound: number;
   staleSitesTrendPercent: number;
+  adminHoursSaved: number;
+  costAvoidanceDollars: number;
+  totalSitesProcessed: number;
   storageTrend: StorageTrendPoint[];
   recentJobs: JobRun[];
 }
@@ -116,6 +119,18 @@ export interface DashboardOverview {
 export interface StorageTrendPoint {
   date: string;
   reclaimedGB: number;
+}
+
+export interface QuotaDistributionBucket {
+  label: string;
+  count: number;
+  minGB: number;
+  maxGB: number;
+}
+
+export interface QuotaStatusResponse {
+  sites: QuotaStatus[];
+  distribution: QuotaDistributionBucket[];
 }
 
 export interface AppSettings {
@@ -132,3 +147,5 @@ export interface JobFilters {
   startDate?: string;
   endDate?: string;
 }
+
+export type TimeRange = "30d" | "90d" | "all";
