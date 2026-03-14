@@ -120,7 +120,7 @@ async function handleGetJob(
       );
 
       // Map results based on job type
-      if (job.JobType === "VersionCleanup") {
+      if (jobType === "VersionCleanup") {
         mappedResults = (rawResults as unknown as VersionCleanupResultEntity[]).map(
           mapVersionCleanupResultEntity
         );
