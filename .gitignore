@@ -51,3 +51,6 @@ reports/
 # Temp
 tmp/
 .tmp/
+
+# Worktrees
+.worktrees/
