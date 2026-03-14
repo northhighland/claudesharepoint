@@ -106,7 +106,9 @@ async function handleGetJob(
   const job = jobs[0];
 
   // Fetch per-site results for this run
-  const resultsTableName = RESULTS_TABLE_MAP[job.JobType];
+  // JobType is stored as PartitionKey, not a separate column
+  const jobType = String(job.partitionKey ?? job.JobType ?? "");
+  const resultsTableName = RESULTS_TABLE_MAP[jobType];
   let mappedResults: unknown[] = [];
 
   if (resultsTableName) {
