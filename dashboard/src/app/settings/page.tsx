@@ -43,14 +43,14 @@ export default function SettingsPage(): React.ReactElement {
     return (
       <div className="space-y-6">
         <div>
-          <h1 className="text-2xl font-bold">Settings</h1>
-          <p className="text-sm text-muted-foreground">
+          <h1 className="text-xl font-semibold tracking-tight text-[#F9FAFB]">Settings</h1>
+          <p className="text-[13px] text-[#6B7280]">
             Configure claudesharepoint automation parameters
           </p>
         </div>
         <div className="space-y-4">
           {[1, 2, 3, 4, 5, 6].map((i) => (
-            <div key={i} className="h-16 animate-pulse rounded-lg bg-muted" />
+            <div key={i} className="h-16 animate-pulse rounded-lg bg-[#1A1A1A]" />
           ))}
         </div>
       </div>
@@ -61,15 +61,15 @@ export default function SettingsPage(): React.ReactElement {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Settings</h1>
-          <p className="text-sm text-muted-foreground">
+          <h1 className="text-xl font-semibold tracking-tight text-[#F9FAFB]">Settings</h1>
+          <p className="text-[13px] text-[#6B7280]">
             Configure claudesharepoint automation parameters
           </p>
         </div>
         <button
           onClick={handleSave}
           disabled={saving}
-          className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+          className="flex items-center gap-2 rounded-md bg-emerald-500 px-4 py-2 text-[13px] font-medium text-[#0A0A0A] hover:bg-emerald-400 disabled:opacity-50"
         >
           {saving ? (
             <Loader2 className="h-4 w-4 animate-spin" />
@@ -82,17 +82,17 @@ export default function SettingsPage(): React.ReactElement {
 
       <div className="max-w-2xl space-y-6">
         {/* Version Cleanup Settings */}
-        <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
-          <h2 className="mb-4 text-lg font-semibold">Version Cleanup</h2>
+        <div className="rounded-md border border-[rgba(255,255,255,0.06)] bg-[#141414] p-6">
+          <h2 className="mb-4 text-sm font-semibold text-[#F9FAFB]">Version Cleanup</h2>
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
               <label
                 htmlFor="expireAfterDays"
-                className="block text-sm font-medium text-foreground"
+                className="block text-[13px] font-medium text-[#D1D5DB]"
               >
                 Expire After Days
               </label>
-              <p className="mb-2 text-xs text-muted-foreground">
+              <p className="mb-2 text-[11px] text-[#6B7280]">
                 Delete versions older than this many days
               </p>
               <input
@@ -103,17 +103,17 @@ export default function SettingsPage(): React.ReactElement {
                 onChange={(e) =>
                   setForm((f) => ({ ...f, expireAfterDays: parseInt(e.target.value) || 0 }))
                 }
-                className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                className="w-full rounded-md border border-[rgba(255,255,255,0.06)] bg-[#0A0A0A] px-3 py-2 text-[13px] text-[#F9FAFB] placeholder:text-[#6B7280] focus:outline-none focus:ring-1 focus:ring-emerald-500"
               />
             </div>
             <div>
               <label
                 htmlFor="maxMajorVersions"
-                className="block text-sm font-medium text-foreground"
+                className="block text-[13px] font-medium text-[#D1D5DB]"
               >
                 Max Major Versions
               </label>
-              <p className="mb-2 text-xs text-muted-foreground">
+              <p className="mb-2 text-[11px] text-[#6B7280]">
                 Keep at most this many major versions per file
               </p>
               <input
@@ -127,23 +127,23 @@ export default function SettingsPage(): React.ReactElement {
                     maxMajorVersions: parseInt(e.target.value) || 0,
                   }))
                 }
-                className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                className="w-full rounded-md border border-[rgba(255,255,255,0.06)] bg-[#0A0A0A] px-3 py-2 text-[13px] text-[#F9FAFB] placeholder:text-[#6B7280] focus:outline-none focus:ring-1 focus:ring-emerald-500"
               />
             </div>
           </div>
         </div>
 
         {/* Quota Settings */}
-        <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
-          <h2 className="mb-4 text-lg font-semibold">Quota Management</h2>
+        <div className="rounded-md border border-[rgba(255,255,255,0.06)] bg-[#141414] p-6">
+          <h2 className="mb-4 text-sm font-semibold text-[#F9FAFB]">Quota Management</h2>
           <div>
             <label
               htmlFor="quotaIncrementGB"
-              className="block text-sm font-medium text-foreground"
+              className="block text-[13px] font-medium text-[#D1D5DB]"
             >
               Quota Increment (GB)
             </label>
-            <p className="mb-2 text-xs text-muted-foreground">
+            <p className="mb-2 text-[11px] text-[#6B7280]">
               Amount to auto-increase quota when a site exceeds threshold
             </p>
             <input
@@ -158,23 +158,23 @@ export default function SettingsPage(): React.ReactElement {
                   quotaIncrementGB: parseFloat(e.target.value) || 0,
                 }))
               }
-              className="w-full max-w-xs rounded-lg border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+              className="w-full max-w-xs rounded-md border border-[rgba(255,255,255,0.06)] bg-[#0A0A0A] px-3 py-2 text-[13px] text-[#F9FAFB] placeholder:text-[#6B7280] focus:outline-none focus:ring-1 focus:ring-emerald-500"
             />
           </div>
         </div>
 
         {/* Notifications */}
-        <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
-          <h2 className="mb-4 text-lg font-semibold">Notifications</h2>
+        <div className="rounded-md border border-[rgba(255,255,255,0.06)] bg-[#141414] p-6">
+          <h2 className="mb-4 text-sm font-semibold text-[#F9FAFB]">Notifications</h2>
           <div className="space-y-4">
             <div>
               <label
                 htmlFor="teamsWebhookUrl"
-                className="block text-sm font-medium text-foreground"
+                className="block text-[13px] font-medium text-[#D1D5DB]"
               >
                 Teams Webhook URL
               </label>
-              <p className="mb-2 text-xs text-muted-foreground">
+              <p className="mb-2 text-[11px] text-[#6B7280]">
                 Incoming webhook URL for Teams notifications
               </p>
               <input
@@ -185,17 +185,17 @@ export default function SettingsPage(): React.ReactElement {
                   setForm((f) => ({ ...f, teamsWebhookUrl: e.target.value }))
                 }
                 placeholder="https://outlook.office.com/webhook/..."
-                className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                className="w-full rounded-md border border-[rgba(255,255,255,0.06)] bg-[#0A0A0A] px-3 py-2 text-[13px] text-[#F9FAFB] placeholder:text-[#6B7280] focus:outline-none focus:ring-1 focus:ring-emerald-500"
               />
             </div>
             <div>
               <label
                 htmlFor="notificationEmail"
-                className="block text-sm font-medium text-foreground"
+                className="block text-[13px] font-medium text-[#D1D5DB]"
               >
                 Notification Email
               </label>
-              <p className="mb-2 text-xs text-muted-foreground">
+              <p className="mb-2 text-[11px] text-[#6B7280]">
                 Email address for job completion alerts
               </p>
               <input
@@ -206,7 +206,7 @@ export default function SettingsPage(): React.ReactElement {
                   setForm((f) => ({ ...f, notificationEmail: e.target.value }))
                 }
                 placeholder="admin@northhighland.com"
-                className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                className="w-full rounded-md border border-[rgba(255,255,255,0.06)] bg-[#0A0A0A] px-3 py-2 text-[13px] text-[#F9FAFB] placeholder:text-[#6B7280] focus:outline-none focus:ring-1 focus:ring-emerald-500"
               />
             </div>
           </div>
