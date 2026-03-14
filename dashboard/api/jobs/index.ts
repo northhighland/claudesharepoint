@@ -113,11 +113,13 @@ async function handleGetJob(
 
   if (resultsTableName) {
     try {
-      const runId = job.rowKey ?? "";
+      const runId = String(job.rowKey ?? "");
+      context.log.info(`Querying ${resultsTableName} with PartitionKey='${runId}'`);
       const rawResults = await queryEntities<TableEntity>(
         resultsTableName,
-        odata`PartitionKey eq ${runId}`
+        `PartitionKey eq '${runId}'`
       );
+      context.log.info(`Got ${rawResults.length} results from ${resultsTableName}`);
 
       // Map results based on job type
       if (jobType === "VersionCleanup") {
