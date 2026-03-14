@@ -38,6 +38,9 @@ npm-debug.log*
 
 # Testing
 coverage/
+dashboard/e2e/auth.json
+dashboard/e2e/e2e-*.yaml
+.playwright-cli/
 
 # Certificates (never commit)
 *.pfx
