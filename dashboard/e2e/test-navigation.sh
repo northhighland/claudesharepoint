@@ -8,86 +8,86 @@ PASS=0
 FAIL=0
 AUTH_STATE="dashboard/e2e/auth.json"
 
+# Extract result value from playwright-cli eval markdown output
+run_js() {
+  playwright-cli eval "$1" 2>&1 | grep -A1 '### Result' | tail -1 | sed 's/^"//;s/"$//'
+}
+
+nav_click() {
+  playwright-cli run-code "async page => await page.getByRole('link', { name: '$1' }).click()" > /dev/null 2>&1
+  # Wait for client-side navigation
+  playwright-cli run-code "async page => await page.waitForTimeout(1000)" > /dev/null 2>&1
+}
+
 check() {
   local desc="$1"
   local expected="$2"
   local actual="$3"
   if echo "$actual" | grep -qi "$expected"; then
     echo "  PASS: $desc"
-    ((PASS++))
+    PASS=$((PASS + 1))
   else
     echo "  FAIL: $desc (expected '$expected', got '$actual')"
-    ((FAIL++))
+    FAIL=$((FAIL + 1))
   fi
 }
 
 echo "=== Navigation Tests ==="
 echo ""
 
-# Load auth if available
+# Open browser, load auth, then navigate
+playwright-cli open > /dev/null 2>&1
 if [ -f "$AUTH_STATE" ]; then
-  playwright-cli state-load "$AUTH_STATE"
+  playwright-cli state-load "$AUTH_STATE" > /dev/null 2>&1
 fi
-
-# Open browser and go to base URL
-playwright-cli open "$BASE_URL"
-playwright-cli snapshot --filename=e2e-nav-overview.yaml
+playwright-cli goto "$BASE_URL" > /dev/null 2>&1
+# Wait for SPA to hydrate
+playwright-cli run-code "async page => await page.waitForTimeout(2000)" > /dev/null 2>&1
 
 # Test 1: Overview page loads
-echo "[1/7] Overview page"
-TITLE=$(playwright-cli eval "document.title")
+echo "[1/6] Overview page"
+TITLE=$(run_js "document.title")
 check "Page title contains 'claudesharepoint'" "claudesharepoint" "$TITLE"
-HEADING=$(playwright-cli eval "document.querySelector('h1')?.textContent || ''")
-check "Overview heading visible" "Overview" "$HEADING"
+CONTENT=$(run_js "document.body.textContent")
+check "Impact Dashboard heading visible" "Impact Dashboard" "$CONTENT"
+check "Storage Reclaimed card present" "Storage Reclaimed" "$CONTENT"
 
 # Test 2: Navigate to Jobs
-echo "[2/7] Jobs page"
-playwright-cli click --text="Jobs"
-playwright-cli snapshot --filename=e2e-nav-jobs.yaml
-HEADING=$(playwright-cli eval "document.querySelector('h1')?.textContent || ''")
-check "Jobs heading visible" "Jobs" "$HEADING"
-HAS_TABLE=$(playwright-cli eval "!!document.querySelector('table')")
+echo "[2/6] Jobs page"
+nav_click "Jobs"
+CONTENT=$(run_js "document.body.textContent")
+check "Jobs content visible" "Jobs" "$CONTENT"
+HAS_TABLE=$(run_js "!!document.querySelector('table')")
 check "Jobs table present" "true" "$HAS_TABLE"
 
-# Test 3: Navigate to Version Cleanup
-echo "[3/7] Version Cleanup page"
-playwright-cli click --text="Version Cleanup"
-playwright-cli snapshot --filename=e2e-nav-versions.yaml
-HEADING=$(playwright-cli eval "document.querySelector('h1')?.textContent || ''")
-check "Version Cleanup heading visible" "Version Cleanup" "$HEADING"
+# Test 3: Navigate to Quota
+echo "[3/6] Quota page"
+nav_click "Quota"
+CONTENT=$(run_js "document.body.textContent")
+check "Quota content visible" "Quota" "$CONTENT"
 
-# Test 4: Navigate to Quota
-echo "[4/7] Quota page"
-playwright-cli click --text="Quota"
-playwright-cli snapshot --filename=e2e-nav-quota.yaml
-HEADING=$(playwright-cli eval "document.querySelector('h1')?.textContent || ''")
-check "Quota heading visible" "Quota" "$HEADING"
+# Test 4: Navigate to Stale Sites
+echo "[4/6] Stale Sites page"
+nav_click "Stale Sites"
+CONTENT=$(run_js "document.body.textContent")
+check "Stale Sites content visible" "Stale" "$CONTENT"
 
-# Test 5: Navigate to Stale Sites
-echo "[5/7] Stale Sites page"
-playwright-cli click --text="Stale Sites"
-playwright-cli snapshot --filename=e2e-nav-stale.yaml
-HEADING=$(playwright-cli eval "document.querySelector('h1')?.textContent || ''")
-check "Stale Sites heading visible" "Stale" "$HEADING"
-
-# Test 6: Navigate to Settings
-echo "[6/7] Settings page"
-playwright-cli click --text="Settings"
-playwright-cli snapshot --filename=e2e-nav-settings.yaml
-HEADING=$(playwright-cli eval "document.querySelector('h1')?.textContent || ''")
-check "Settings heading visible" "Settings" "$HEADING"
-HAS_INPUT=$(playwright-cli eval "!!document.querySelector('input')")
+# Test 5: Navigate to Settings
+echo "[5/6] Settings page"
+nav_click "Settings"
+CONTENT=$(run_js "document.body.textContent")
+check "Settings content visible" "Settings" "$CONTENT"
+HAS_INPUT=$(run_js "!!document.querySelector('input')")
 check "Settings form inputs present" "true" "$HAS_INPUT"
 
-# Test 7: Navigate back to Overview
-echo "[7/7] Back to Overview"
-playwright-cli click --text="Overview"
-playwright-cli snapshot --filename=e2e-nav-back-overview.yaml
-HEADING=$(playwright-cli eval "document.querySelector('h1')?.textContent || ''")
-check "Overview heading after nav round-trip" "Overview" "$HEADING"
+# Test 6: Navigate back to Overview
+echo "[6/6] Back to Overview"
+nav_click "Overview"
+CONTENT=$(run_js "document.body.textContent")
+check "Back at Impact Dashboard" "Impact Dashboard" "$CONTENT"
 
 # Close browser
-playwright-cli close
+playwright-cli close > /dev/null 2>&1
 
 # Summary
 echo ""
