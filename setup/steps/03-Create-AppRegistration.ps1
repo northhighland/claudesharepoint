@@ -88,6 +88,43 @@ function Invoke-Step03_CreateAppRegistration {
 
     #endregion
 
+    #region Add app role for dashboard admin access
+
+    Write-StepBanner -Step $stepNumber -Status 'Info' -Message 'Adding admin app role for dashboard RBAC'
+
+    try {
+        $existingRoles = az ad app show --id $appId --query "appRoles" -o json 2>&1 | ConvertFrom-Json
+        $hasAdminRole = $existingRoles | Where-Object { $_.value -eq 'admin' }
+
+        if ($hasAdminRole) {
+            Write-StepBanner -Step $stepNumber -Status 'Success' -Message 'Admin app role already exists'
+        }
+        else {
+            $adminRoleId = [guid]::NewGuid().ToString()
+            $roleJson = @(
+                @{
+                    allowedMemberTypes = @('User')
+                    description        = 'Administrators can trigger jobs, update settings, and manage stale sites'
+                    displayName        = 'Admin'
+                    isEnabled          = $true
+                    value              = 'admin'
+                    id                 = $adminRoleId
+                }
+            )
+            # Merge with any existing roles
+            $allRoles = @($existingRoles) + $roleJson | Where-Object { $_ }
+            $rolesArg = ($allRoles | ConvertTo-Json -Depth 5 -Compress)
+            az ad app update --id $appId --app-roles $rolesArg --only-show-errors 2>&1 | Out-Null
+            Write-StepBanner -Step $stepNumber -Status 'Success' -Message "Admin app role created (id: $adminRoleId)"
+        }
+    }
+    catch {
+        Write-StepBanner -Step $stepNumber -Status 'Warn' -Message "Could not add admin app role: $_"
+        Write-StepBanner -Step $stepNumber -Status 'Info' -Message 'You can add it manually: App registrations > App roles > Create "admin" role for Users'
+    }
+
+    #endregion
+
     #region Add API permissions
 
     Write-StepBanner -Step $stepNumber -Status 'Info' -Message 'Adding Microsoft Graph permissions'
