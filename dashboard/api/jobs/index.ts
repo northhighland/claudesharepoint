@@ -127,8 +127,8 @@ async function handleGetJob(
       } else {
         mappedResults = rawResults;
       }
-    } catch {
-      // Results table may not exist; return empty array
+    } catch (resultsError: unknown) {
+      context.log.error(`Failed to fetch results from ${resultsTableName} for runId=${job.rowKey}:`, resultsError);
     }
   }
 
