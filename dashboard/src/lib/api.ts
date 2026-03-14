@@ -50,11 +50,16 @@ export async function fetchJob(
 
 export async function triggerJob(
   jobType: JobType,
-  dryRun = false
+  dryRun = true,
+  batchSize?: number
 ): Promise<{ runId: string }> {
+  const payload: Record<string, unknown> = { jobType, dryRun };
+  if (batchSize && batchSize > 0) {
+    payload.batchSize = batchSize;
+  }
   return fetchJSON("/jobs-trigger", {
     method: "POST",
-    body: JSON.stringify({ jobType, dryRun }),
+    body: JSON.stringify(payload),
   });
 }
 

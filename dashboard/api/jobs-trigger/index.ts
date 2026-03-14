@@ -17,7 +17,7 @@ const handler: AzureFunction = async function (
       return;
     }
 
-    const { jobType, dryRun } = body;
+    const { jobType, dryRun, batchSize } = body;
 
     if (!VALID_JOB_TYPES.includes(jobType as ValidJobType)) {
       context.res = errorResponse(
@@ -28,15 +28,21 @@ const handler: AzureFunction = async function (
     }
 
     const isDryRun = dryRun ?? true;
+    const validBatchSize = batchSize && Number(batchSize) > 0 ? Number(batchSize) : undefined;
 
     context.log.info(
-      `[AUDIT] Runbook triggered: JobType=${jobType}, DryRun=${isDryRun}, User=${principal.userDetails}`
+      `[AUDIT] Runbook triggered: JobType=${jobType}, DryRun=${isDryRun}, BatchSize=${validBatchSize ?? "default"}, User=${principal.userDetails}`
     );
 
-    const jobId = await triggerRunbook("Invoke-Orchestrator", {
+    const params: Record<string, string> = {
       JobType: jobType,
       DryRun: String(isDryRun),
-    });
+    };
+    if (validBatchSize) {
+      params.BatchSize = String(validBatchSize);
+    }
+
+    const jobId = await triggerRunbook("Invoke-Orchestrator", params);
 
     context.res = jsonResponse(
       {

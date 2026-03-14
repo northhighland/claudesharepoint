@@ -3,12 +3,13 @@
 import { useState, useCallback, useEffect } from "react";
 import { Play } from "lucide-react";
 import { usePolling } from "@/hooks/use-polling";
-import { fetchStaleSites, fetchJobs, triggerJob } from "@/lib/api";
+import { fetchStaleSites, fetchJobs } from "@/lib/api";
 import { formatBytes, formatDate, getStatusColor, cn } from "@/lib/utils";
 import { SiteTable } from "@/components/stale-sites/site-table";
 import { ImpactSummary } from "@/components/stale-sites/impact-summary";
 import { ActiveJobBanner } from "@/components/jobs/active-job-banner";
 import { JobDetail } from "@/components/jobs/job-detail";
+import { TriggerModal } from "@/components/jobs/trigger-modal";
 import type { JobRun } from "@/lib/types";
 import type { StaleSiteRecommendation } from "@/lib/types";
 
@@ -21,7 +22,7 @@ export default function StaleSitesPage(): React.ReactElement {
   const [category, setCategory] = useState<CategoryFilter>("all");
   const [statusFilter, setStatusFilter] = useState<FilterStatus>("all");
   const [selectedJob, setSelectedJob] = useState<JobRun | null>(null);
-  const [triggering, setTriggering] = useState(false);
+  const [triggerOpen, setTriggerOpen] = useState(false);
 
   const { data: sites, isLoading, mutate: mutateSites } = usePolling("stale-sites", fetchStaleSites, 60000);
 
@@ -37,18 +38,6 @@ export default function StaleSitesPage(): React.ReactElement {
     const hasRunning = (jobs ?? []).some((j) => j.status === "Running");
     setPollInterval(hasRunning ? 5000 : 60000);
   }, [jobs]);
-
-  const handleTrigger = async (): Promise<void> => {
-    setTriggering(true);
-    try {
-      await triggerJob("StaleSiteDetector", false);
-      mutateJobs();
-    } catch {
-      // Error handled by api client
-    } finally {
-      setTriggering(false);
-    }
-  };
 
   const allSites = sites ?? [];
   const filtered =
@@ -80,12 +69,11 @@ export default function StaleSitesPage(): React.ReactElement {
           </p>
         </div>
         <button
-          onClick={handleTrigger}
-          disabled={triggering}
-          className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+          onClick={() => setTriggerOpen(true)}
+          className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
         >
           <Play className="h-4 w-4" />
-          {triggering ? "Triggering..." : "Run Stale Site Detector"}
+          Run Stale Site Detector
         </button>
       </div>
 
@@ -228,6 +216,13 @@ export default function StaleSitesPage(): React.ReactElement {
           )}
         </div>
       </div>
+
+      <TriggerModal
+        jobType="StaleSiteDetector"
+        isOpen={triggerOpen}
+        onClose={() => setTriggerOpen(false)}
+        onTriggered={() => mutateJobs()}
+      />
     </div>
   );
 }

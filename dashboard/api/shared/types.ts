@@ -81,6 +81,7 @@ export interface DashboardOverviewResponse {
 export interface TriggerJobRequest {
   jobType: string;
   dryRun?: boolean;
+  batchSize?: number;
 }
 
 export interface StaleSiteActionRequest {
