@@ -3,7 +3,7 @@
 import { useState, useCallback, useEffect } from "react";
 import { Play } from "lucide-react";
 import { usePolling } from "@/hooks/use-polling";
-import { fetchQuotaStatus, fetchJobs, triggerJob } from "@/lib/api";
+import { fetchQuotaStatus, fetchJobs } from "@/lib/api";
 import { formatBytes, formatDate, getStatusColor, cn } from "@/lib/utils";
 import { TopSitesList } from "@/components/quota/top-sites-list";
 import { DistributionChart } from "@/components/quota/distribution-chart";
@@ -11,6 +11,7 @@ import { QuotaHeatmap } from "@/components/quota/quota-heatmap";
 import { QuotaHistory } from "@/components/quota/quota-history";
 import { ActiveJobBanner } from "@/components/jobs/active-job-banner";
 import { JobDetail } from "@/components/jobs/job-detail";
+import { TriggerModal } from "@/components/jobs/trigger-modal";
 import type { JobRun } from "@/lib/types";
 
 type FilterStatus = "all" | "Completed" | "Failed" | "Running";
@@ -18,7 +19,7 @@ type FilterStatus = "all" | "Completed" | "Failed" | "Running";
 export default function QuotaPage(): React.ReactElement {
   const [statusFilter, setStatusFilter] = useState<FilterStatus>("all");
   const [selectedJob, setSelectedJob] = useState<JobRun | null>(null);
-  const [triggering, setTriggering] = useState(false);
+  const [triggerOpen, setTriggerOpen] = useState(false);
 
   const { data, isLoading } = usePolling("quota", () => fetchQuotaStatus(), 60000);
 
@@ -34,18 +35,6 @@ export default function QuotaPage(): React.ReactElement {
     const hasRunning = (jobs ?? []).some((j) => j.status === "Running");
     setPollInterval(hasRunning ? 5000 : 60000);
   }, [jobs]);
-
-  const handleTrigger = async (): Promise<void> => {
-    setTriggering(true);
-    try {
-      await triggerJob("QuotaManager", false);
-      mutate();
-    } catch {
-      // Error handled by api client
-    } finally {
-      setTriggering(false);
-    }
-  };
 
   const filteredJobs = (jobs ?? []).filter(
     (j) => statusFilter === "all" || j.status === statusFilter
@@ -73,12 +62,11 @@ export default function QuotaPage(): React.ReactElement {
           </p>
         </div>
         <button
-          onClick={handleTrigger}
-          disabled={triggering}
-          className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+          onClick={() => setTriggerOpen(true)}
+          className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
         >
           <Play className="h-4 w-4" />
-          {triggering ? "Triggering..." : "Run Quota Manager"}
+          Run Quota Manager
         </button>
       </div>
 
@@ -239,6 +227,13 @@ export default function QuotaPage(): React.ReactElement {
           )}
         </div>
       </div>
+
+      <TriggerModal
+        jobType="QuotaManager"
+        isOpen={triggerOpen}
+        onClose={() => setTriggerOpen(false)}
+        onTriggered={() => mutate()}
+      />
     </div>
   );
 }
