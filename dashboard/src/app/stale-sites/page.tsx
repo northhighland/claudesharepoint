@@ -30,8 +30,8 @@ export default function StaleSitesPage(): React.ReactElement {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">Stale Sites</h1>
-        <p className="text-sm text-muted-foreground">
+        <h1 className="text-xl font-semibold tracking-tight text-[#F9FAFB]">Stale Sites</h1>
+        <p className="text-[13px] text-[#6B7280]">
           Analyze site activity and manage stale site recommendations
         </p>
       </div>
@@ -43,14 +43,14 @@ export default function StaleSitesPage(): React.ReactElement {
             key={cat}
             onClick={() => setCategory(cat)}
             className={cn(
-              "rounded-lg px-3 py-1.5 text-sm font-medium transition-colors",
+              "rounded-md px-3 py-1.5 text-[13px] font-medium transition-colors",
               category === cat
-                ? "bg-primary text-primary-foreground"
-                : "bg-muted text-muted-foreground hover:text-foreground"
+                ? "bg-emerald-500 text-[#0A0A0A]"
+                : "bg-[#1A1A1A] text-[#6B7280] hover:text-[#D1D5DB]"
             )}
           >
             {cat === "all" ? "All" : cat}
-            <span className="ml-1.5 text-xs opacity-70">({counts[cat]})</span>
+            <span className="ml-1.5 text-[11px] opacity-70">({counts[cat]})</span>
           </button>
         ))}
       </div>

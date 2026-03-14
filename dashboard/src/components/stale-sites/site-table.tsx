@@ -89,9 +89,9 @@ export function SiteTable({
     label: string;
     sortable: SortKey;
   }): React.ReactElement => (
-    <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">
+    <th className="px-4 py-3 text-left text-[11px] font-medium uppercase tracking-widest text-[#6B7280]">
       <button
-        className="flex items-center gap-1 hover:text-foreground"
+        className="flex items-center gap-1 hover:text-[#D1D5DB]"
         onClick={() => handleSort(sortable)}
       >
         {label}
@@ -102,10 +102,10 @@ export function SiteTable({
 
   if (isLoading) {
     return (
-      <div className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
+      <div className="overflow-hidden rounded-lg border border-[rgba(255,255,255,0.06)]">
         <div className="space-y-2 p-4">
           {[1, 2, 3, 4, 5].map((i) => (
-            <div key={i} className="h-12 animate-pulse rounded bg-muted" />
+            <div key={i} className="h-12 animate-pulse rounded bg-[#1A1A1A]" />
           ))}
         </div>
       </div>
@@ -116,29 +116,29 @@ export function SiteTable({
     <div className="space-y-4">
       {/* Bulk actions */}
       {selected.size > 0 && (
-        <div className="flex items-center gap-3 rounded-lg border border-border bg-card p-3">
-          <span className="text-sm text-muted-foreground">
+        <div className="flex items-center gap-3 rounded-md border border-[rgba(255,255,255,0.06)] bg-[#141414] p-3">
+          <span className="text-[13px] text-[#6B7280]">
             {selected.size} site{selected.size !== 1 ? "s" : ""} selected
           </span>
           <div className="flex gap-2">
             <button
               onClick={() => handleBulkAction("Keep")}
               disabled={actionInProgress}
-              className="rounded-md bg-green-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-green-700 disabled:opacity-50"
+              className="rounded-md bg-emerald-500/15 px-3 py-1.5 text-[11px] font-medium text-emerald-400 hover:bg-emerald-500/25 disabled:opacity-50"
             >
               Keep
             </button>
             <button
               onClick={() => handleBulkAction("Archive")}
               disabled={actionInProgress}
-              className="rounded-md bg-yellow-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-yellow-700 disabled:opacity-50"
+              className="rounded-md bg-amber-500/15 px-3 py-1.5 text-[11px] font-medium text-amber-400 hover:bg-amber-500/25 disabled:opacity-50"
             >
               Archive
             </button>
             <button
               onClick={() => handleBulkAction("Delete")}
               disabled={actionInProgress}
-              className="rounded-md bg-red-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-red-700 disabled:opacity-50"
+              className="rounded-md bg-red-500/15 px-3 py-1.5 text-[11px] font-medium text-red-400 hover:bg-red-500/25 disabled:opacity-50"
             >
               Delete
             </button>
@@ -146,17 +146,17 @@ export function SiteTable({
         </div>
       )}
 
-      <div className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
+      <div className="overflow-hidden rounded-lg border border-[rgba(255,255,255,0.06)]">
         <div className="overflow-x-auto">
           <table className="w-full">
-            <thead className="border-b border-border bg-muted/50">
+            <thead className="border-b border-[rgba(255,255,255,0.06)]">
               <tr>
                 <th className="px-4 py-3">
                   <input
                     type="checkbox"
                     checked={selected.size === sites.length && sites.length > 0}
                     onChange={toggleAll}
-                    className="rounded border-border"
+                    className="rounded border-[rgba(255,255,255,0.06)]"
                   />
                 </th>
                 <SortHeader label="Site Name" sortable="siteName" />
@@ -164,77 +164,77 @@ export function SiteTable({
                 <SortHeader label="Category" sortable="category" />
                 <SortHeader label="Last Activity" sortable="lastActivityDate" />
                 <SortHeader label="Storage" sortable="storageUsedBytes" />
-                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                <th className="px-4 py-3 text-left text-[11px] font-medium uppercase tracking-widest text-[#6B7280]">
                   Admin Action
                 </th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-border">
+            <tbody className="divide-y divide-[rgba(255,255,255,0.04)]">
               {sorted.length === 0 ? (
                 <tr>
                   <td
                     colSpan={7}
-                    className="px-4 py-8 text-center text-sm text-muted-foreground"
+                    className="px-4 py-8 text-center text-[13px] text-[#6B7280]"
                   >
                     No stale sites found
                   </td>
                 </tr>
               ) : (
                 sorted.map((site) => (
-                  <tr key={site.siteUrl} className="hover:bg-accent/50">
+                  <tr key={site.siteUrl} className="hover:bg-[rgba(255,255,255,0.03)]">
                     <td className="px-4 py-3">
                       <input
                         type="checkbox"
                         checked={selected.has(site.siteUrl)}
                         onChange={() => toggleSelect(site.siteUrl)}
-                        className="rounded border-border"
+                        className="rounded border-[rgba(255,255,255,0.06)]"
                       />
                     </td>
-                    <td className="px-4 py-3 text-sm">
-                      <div className="font-medium">{site.siteName}</div>
-                      <div className="text-xs text-muted-foreground">{site.ownerEmail}</div>
+                    <td className="px-4 py-3 text-[13px]">
+                      <div className="font-medium text-[#F9FAFB]">{site.siteName}</div>
+                      <div className="text-[11px] text-[#6B7280]">{site.ownerEmail}</div>
                     </td>
                     <td className="min-w-[200px] px-4 py-3">
                       <StalenessScore score={site.stalenessScore} category={site.category} />
                     </td>
-                    <td className="whitespace-nowrap px-4 py-3 text-sm">
+                    <td className="whitespace-nowrap px-4 py-3 text-[13px]">
                       <span
                         className={cn(
-                          "rounded-full px-2 py-0.5 text-xs font-medium",
+                          "rounded-full px-2 py-0.5 text-[11px] font-medium",
                           site.category === "Active"
-                            ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300"
+                            ? "bg-emerald-500/15 text-emerald-400"
                             : site.category === "Low Activity"
-                              ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300"
+                              ? "bg-amber-500/15 text-amber-400"
                               : site.category === "Stale"
-                                ? "bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-300"
-                                : "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300"
+                                ? "bg-orange-500/15 text-orange-400"
+                                : "bg-red-500/15 text-red-400"
                         )}
                       >
                         {site.category}
                       </span>
                     </td>
-                    <td className="whitespace-nowrap px-4 py-3 text-sm text-muted-foreground">
+                    <td className="whitespace-nowrap px-4 py-3 text-[13px] text-[#6B7280]">
                       {formatDate(site.lastActivityDate)}
                     </td>
-                    <td className="whitespace-nowrap px-4 py-3 text-sm">
+                    <td className="whitespace-nowrap px-4 py-3 text-[13px] text-[#D1D5DB]">
                       {formatBytes(site.storageUsedBytes)}
                     </td>
-                    <td className="whitespace-nowrap px-4 py-3 text-sm">
+                    <td className="whitespace-nowrap px-4 py-3 text-[13px]">
                       {site.adminAction ? (
                         <span
                           className={cn(
-                            "rounded-full px-2 py-0.5 text-xs font-medium",
+                            "rounded-full px-2 py-0.5 text-[11px] font-medium",
                             site.adminAction === "Keep"
-                              ? "bg-green-100 text-green-800"
+                              ? "bg-emerald-500/15 text-emerald-400"
                               : site.adminAction === "Archive"
-                                ? "bg-yellow-100 text-yellow-800"
-                                : "bg-red-100 text-red-800"
+                                ? "bg-amber-500/15 text-amber-400"
+                                : "bg-red-500/15 text-red-400"
                           )}
                         >
                           {site.adminAction}
                         </span>
                       ) : (
-                        <span className="text-xs text-muted-foreground">Pending</span>
+                        <span className="text-[11px] text-[#6B7280]">Pending</span>
                       )}
                     </td>
                   </tr>
