@@ -28,6 +28,10 @@
     Email for alert notifications. Required to enable metric alerts (job failure
     notifications). If omitted, the action group and alert rules are skipped.
 
+.PARAMETER AdminUsers
+    Comma-separated list of admin email addresses for dashboard RBAC.
+    Users in this list can trigger jobs, update settings, and manage stale sites.
+
 .PARAMETER SkipPrerequisites
     Skip prerequisite validation.
 
@@ -56,6 +60,8 @@ param(
     [string]$Location,
 
     [string]$AlertRecipients,
+
+    [string]$AdminUsers,
 
     [switch]$SkipPrerequisites
 )
@@ -157,6 +163,9 @@ if ($AlertRecipients) {
     Write-Host "  Action Group:        ag-csp-$ClientCode"
     Write-Host "  Alert Recipients:    $AlertRecipients"
 }
+if ($AdminUsers) {
+    Write-Host "  Admin Users:         $AdminUsers"
+}
 Write-Host ""
 
 $templatePath = Join-Path $PSScriptRoot 'main.bicep'
@@ -171,6 +180,9 @@ $deployParams = @{
 
 if ($AlertRecipients) {
     $deployParams.alertRecipients = $AlertRecipients
+}
+if ($AdminUsers) {
+    $deployParams.adminUsers = $AdminUsers
 }
 
 Write-Host "Deploying (this may take 3-5 minutes)..." -ForegroundColor White
