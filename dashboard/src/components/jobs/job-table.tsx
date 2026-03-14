@@ -46,9 +46,9 @@ export function JobTable({ jobs, isLoading, onSelectJob }: JobTableProps): React
     label: string;
     sortable: SortKey;
   }): React.ReactElement => (
-    <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">
+    <th className="px-4 py-3 text-left text-[11px] font-medium uppercase tracking-widest text-[#6B7280]">
       <button
-        className="flex items-center gap-1 hover:text-foreground"
+        className="flex items-center gap-1 hover:text-[#D1D5DB]"
         onClick={() => handleSort(sortable)}
       >
         {label}
@@ -59,10 +59,10 @@ export function JobTable({ jobs, isLoading, onSelectJob }: JobTableProps): React
 
   if (isLoading) {
     return (
-      <div className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
+      <div className="overflow-hidden rounded-lg border border-[rgba(255,255,255,0.06)]">
         <div className="space-y-2 p-4">
           {[1, 2, 3, 4, 5].map((i) => (
-            <div key={i} className="h-12 animate-pulse rounded bg-muted" />
+            <div key={i} className="h-12 animate-pulse rounded bg-[#1A1A1A]" />
           ))}
         </div>
       </div>
@@ -70,28 +70,28 @@ export function JobTable({ jobs, isLoading, onSelectJob }: JobTableProps): React
   }
 
   return (
-    <div className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
+    <div className="overflow-hidden rounded-lg border border-[rgba(255,255,255,0.06)]">
       <div className="overflow-x-auto">
         <table className="w-full">
-          <thead className="border-b border-border bg-muted/50">
+          <thead className="border-b border-[rgba(255,255,255,0.06)]">
             <tr>
               <SortHeader label="Type" sortable="jobType" />
               <SortHeader label="Status" sortable="status" />
               <SortHeader label="Started" sortable="startedAt" />
-              <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">
+              <th className="px-4 py-3 text-left text-[11px] font-medium uppercase tracking-widest text-[#6B7280]">
                 Duration
               </th>
               <SortHeader label="Sites" sortable="processedSites" />
-              <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">
+              <th className="px-4 py-3 text-left text-[11px] font-medium uppercase tracking-widest text-[#6B7280]">
                 Errors
               </th>
               <SortHeader label="Reclaimed" sortable="totalSpaceReclaimedBytes" />
             </tr>
           </thead>
-          <tbody className="divide-y divide-border">
+          <tbody className="divide-y divide-[rgba(255,255,255,0.04)]">
             {sorted.length === 0 ? (
               <tr>
-                <td colSpan={7} className="px-4 py-8 text-center text-sm text-muted-foreground">
+                <td colSpan={7} className="px-4 py-8 text-center text-[13px] text-[#6B7280]">
                   No jobs found
                 </td>
               </tr>
@@ -100,12 +100,12 @@ export function JobTable({ jobs, isLoading, onSelectJob }: JobTableProps): React
                 <tr
                   key={job.runId}
                   onClick={() => onSelectJob(job)}
-                  className="cursor-pointer transition-colors hover:bg-accent/50"
+                  className="cursor-pointer transition-colors hover:bg-[rgba(255,255,255,0.03)]"
                 >
-                  <td className="whitespace-nowrap px-4 py-3 text-sm font-medium">
+                  <td className="whitespace-nowrap px-4 py-3 text-[13px] font-medium text-[#F9FAFB]">
                     {job.jobType}
                     {job.isDryRun && (
-                      <span className="ml-2 rounded bg-yellow-100 px-1.5 py-0.5 text-xs text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300">
+                      <span className="ml-2 rounded bg-amber-500/15 px-1.5 py-0.5 text-[11px] text-amber-400">
                         Dry Run
                       </span>
                     )}
@@ -113,7 +113,7 @@ export function JobTable({ jobs, isLoading, onSelectJob }: JobTableProps): React
                   <td className="whitespace-nowrap px-4 py-3">
                     <span
                       className={cn(
-                        "rounded-full px-2 py-0.5 text-xs font-medium",
+                        "rounded-full px-2 py-0.5 text-[11px] font-medium",
                         getStatusColor(job.status)
                       )}
                     >
@@ -125,23 +125,23 @@ export function JobTable({ jobs, isLoading, onSelectJob }: JobTableProps): React
                       </div>
                     )}
                   </td>
-                  <td className="whitespace-nowrap px-4 py-3 text-sm text-muted-foreground">
+                  <td className="whitespace-nowrap px-4 py-3 text-[13px] text-[#6B7280]">
                     {formatDate(job.startedAt)}
                   </td>
-                  <td className="whitespace-nowrap px-4 py-3 text-sm text-muted-foreground">
+                  <td className="whitespace-nowrap px-4 py-3 text-[13px] text-[#6B7280]">
                     {job.durationMs ? formatDuration(job.durationMs) : "--"}
                   </td>
-                  <td className="whitespace-nowrap px-4 py-3 text-sm">
+                  <td className="whitespace-nowrap px-4 py-3 text-[13px] text-[#D1D5DB]">
                     {job.processedSites} / {job.totalSites}
                   </td>
-                  <td className="whitespace-nowrap px-4 py-3 text-sm">
+                  <td className="whitespace-nowrap px-4 py-3 text-[13px]">
                     {job.failedSites > 0 ? (
-                      <span className="text-red-600">{job.failedSites}</span>
+                      <span className="text-red-400">{job.failedSites}</span>
                     ) : (
-                      <span className="text-muted-foreground">0</span>
+                      <span className="text-[#6B7280]">0</span>
                     )}
                   </td>
-                  <td className="whitespace-nowrap px-4 py-3 text-sm font-medium">
+                  <td className="whitespace-nowrap px-4 py-3 text-[13px] font-medium text-[#F9FAFB]">
                     {formatBytes(job.totalSpaceReclaimedBytes)}
                   </td>
                 </tr>

@@ -61,8 +61,8 @@ export default function JobsPage(): React.ReactElement {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Jobs</h1>
-          <p className="text-sm text-muted-foreground">
+          <h1 className="text-xl font-semibold tracking-tight text-[#F9FAFB]">Jobs</h1>
+          <p className="text-[13px] text-[#6B7280]">
             Monitor and manage automation job runs
           </p>
         </div>
@@ -72,7 +72,7 @@ export default function JobsPage(): React.ReactElement {
           <button
             onClick={() => setTriggerOpen(!triggerOpen)}
             disabled={triggering}
-            className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+            className="flex items-center gap-2 rounded-md bg-emerald-500 px-4 py-2 text-[13px] font-medium text-[#0A0A0A] hover:bg-emerald-400 disabled:opacity-50"
           >
             <Play className="h-4 w-4" />
             {triggering ? "Triggering..." : "Trigger Job"}
@@ -84,12 +84,12 @@ export default function JobsPage(): React.ReactElement {
                 className="fixed inset-0 z-10"
                 onClick={() => setTriggerOpen(false)}
               />
-              <div className="absolute right-0 z-20 mt-1 w-48 rounded-lg border border-border bg-card py-1 shadow-lg">
+              <div className="absolute right-0 z-20 mt-1 w-48 rounded-md border border-[rgba(255,255,255,0.06)] bg-[#141414] py-1 shadow-lg">
                 {JOB_TYPES.map((type) => (
                   <button
                     key={type}
                     onClick={() => handleTrigger(type)}
-                    className="w-full px-4 py-2 text-left text-sm hover:bg-accent"
+                    className="w-full px-4 py-2 text-left text-[13px] text-[#D1D5DB] hover:bg-[#1A1A1A]"
                   >
                     {JOB_TYPE_DISPLAY_NAMES[type]}
                   </button>
@@ -110,7 +110,7 @@ export default function JobsPage(): React.ReactElement {
               jobType: (e.target.value || undefined) as JobType | undefined,
             }))
           }
-          className="rounded-lg border border-border bg-card px-3 py-2 text-sm"
+          className="rounded-md border border-[rgba(255,255,255,0.06)] bg-[#141414] px-3 py-2 text-[13px] text-[#D1D5DB] focus:outline-none focus:ring-1 focus:ring-emerald-500"
         >
           <option value="">All Types</option>
           {JOB_TYPES.map((t) => (
@@ -127,7 +127,7 @@ export default function JobsPage(): React.ReactElement {
               status: (e.target.value || undefined) as JobStatus | undefined,
             }))
           }
-          className="rounded-lg border border-border bg-card px-3 py-2 text-sm"
+          className="rounded-md border border-[rgba(255,255,255,0.06)] bg-[#141414] px-3 py-2 text-[13px] text-[#D1D5DB] focus:outline-none focus:ring-1 focus:ring-emerald-500"
         >
           <option value="">All Statuses</option>
           {JOB_STATUSES.map((s) => (

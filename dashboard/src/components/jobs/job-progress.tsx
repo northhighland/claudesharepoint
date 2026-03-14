@@ -23,22 +23,22 @@ export function JobProgress({ job, compact = false }: JobProgressProps): React.R
   return (
     <div className={cn("space-y-2", compact ? "w-48" : "w-full")}>
       {/* Progress bar */}
-      <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
+      <div className="h-1 w-full overflow-hidden rounded-full bg-[rgba(255,255,255,0.06)]">
         <div
           className={cn(
             "h-full rounded-full transition-all duration-500",
             isRunning
-              ? "animate-pulse bg-blue-500"
+              ? "animate-pulse bg-emerald-400"
               : percent === 100
-                ? "bg-green-500"
-                : "bg-blue-500"
+                ? "bg-emerald-400"
+                : "bg-sky-400"
           )}
           style={{ width: `${Math.max(percent, isRunning ? 5 : 0)}%` }}
         />
       </div>
 
       {/* Wave text and counts */}
-      <div className="flex items-center justify-between text-xs text-muted-foreground">
+      <div className="flex items-center justify-between text-[11px] text-[#6B7280]">
         <span>
           {totalWaves > 0
             ? `Wave ${completedWaves}/${totalWaves}`
@@ -49,10 +49,10 @@ export function JobProgress({ job, compact = false }: JobProgressProps): React.R
         {(succeeded > 0 || failed > 0) && (
           <span className="flex items-center gap-2">
             {succeeded > 0 && (
-              <span className="text-green-600">{succeeded} succeeded</span>
+              <span className="text-emerald-400">{succeeded} succeeded</span>
             )}
             {failed > 0 && (
-              <span className="text-red-600">{failed} failed</span>
+              <span className="text-red-400">{failed} failed</span>
             )}
           </span>
         )}
