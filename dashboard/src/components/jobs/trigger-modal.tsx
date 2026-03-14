@@ -155,7 +155,20 @@ export function TriggerModal({
           {/* Error */}
           {error && (
             <div className="mb-4 rounded-lg border border-red-500/20 bg-red-500/10 p-3 text-sm text-red-400">
-              {error}
+              <div className="flex items-start gap-2">
+                <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
+                <div>
+                  <p className="font-medium">{error}</p>
+                  <div className="mt-2 text-xs opacity-80">
+                    <p className="font-medium mb-1">Troubleshooting:</p>
+                    <ol className="list-decimal list-inside space-y-0.5">
+                      <li>You are signed in</li>
+                      <li>Your IP is allowlisted</li>
+                      <li>The Function App is running</li>
+                    </ol>
+                  </div>
+                </div>
+              </div>
             </div>
           )}
 

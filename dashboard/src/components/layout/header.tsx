@@ -43,6 +43,20 @@ export function Header(): React.ReactElement {
                 <User className="h-3.5 w-3.5 text-primary" />
               </div>
               <span className="text-sm text-muted-foreground">{user.userDetails}</span>
+              {user.userRoles
+                ?.filter((r) => r !== "anonymous")
+                .map((role) => (
+                  <span
+                    key={role}
+                    className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium ${
+                      role === "admin"
+                        ? "bg-emerald-500/15 text-emerald-400"
+                        : "bg-muted text-muted-foreground"
+                    }`}
+                  >
+                    {role}
+                  </span>
+                ))}
             </div>
             <button
               onClick={handleLogout}
