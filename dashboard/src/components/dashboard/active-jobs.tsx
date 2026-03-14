@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { Play, Clock, CheckCircle2, AlertCircle } from "lucide-react";
 import { cn, formatDuration, formatDate, getStatusColor } from "@/lib/utils";
 import type { JobRun } from "@/lib/types";
@@ -46,9 +47,10 @@ export function ActiveJobs({ jobs, isLoading }: ActiveJobsProps): React.ReactEle
                 : "--";
 
             return (
-              <div
+              <Link
                 key={job.runId}
-                className="glass-card-hover rounded-lg p-4"
+                href="/jobs"
+                className="block glass-card-hover rounded-lg p-4 cursor-pointer"
               >
                 <div className="flex items-start justify-between">
                   <div className="flex items-center gap-2">
@@ -100,7 +102,7 @@ export function ActiveJobs({ jobs, isLoading }: ActiveJobsProps): React.ReactEle
                   <span>Started {formatDate(job.startedAt)}</span>
                   <span>Duration: {elapsed}</span>
                 </div>
-              </div>
+              </Link>
             );
           })}
         </div>
