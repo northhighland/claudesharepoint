@@ -3,7 +3,14 @@
 import Link from "next/link";
 import { Play, Clock, CheckCircle2, AlertCircle } from "lucide-react";
 import { cn, formatDuration, formatDate, getStatusColor } from "@/lib/utils";
-import type { JobRun } from "@/lib/types";
+import type { JobRun, JobType } from "@/lib/types";
+
+const JOB_TYPE_ROUTES: Record<JobType, string> = {
+  VersionCleanup: "/versions",
+  RecycleBinCleaner: "/recycle-bin",
+  QuotaManager: "/quota",
+  StaleSiteDetector: "/stale-sites",
+};
 
 interface ActiveJobsProps {
   jobs: JobRun[] | undefined;
@@ -49,7 +56,7 @@ export function ActiveJobs({ jobs, isLoading }: ActiveJobsProps): React.ReactEle
             return (
               <Link
                 key={job.runId}
-                href="/versions"
+                href={JOB_TYPE_ROUTES[job.jobType as JobType] ?? "/versions"}
                 className="block glass-card-hover rounded-lg p-4 cursor-pointer"
               >
                 <div className="flex items-start justify-between">
