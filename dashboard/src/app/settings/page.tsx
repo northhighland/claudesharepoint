@@ -26,7 +26,7 @@ export default function SettingsPage(): React.ReactElement {
   const { data: settings, isLoading, mutate } = usePolling("settings", fetchSettings, 0);
   const [form, setForm] = useState<AppSettings>({
     expireAfterDays: 90,
-    maxMajorVersions: 50,
+    maxMajorVersions: 100,
     quotaIncrementGB: 25,
     teamsWebhookUrl: "",
     notificationEmail: "",
