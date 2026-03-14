@@ -39,12 +39,8 @@ resource keyVault 'Microsoft.KeyVault/vaults@2023-07-01' = {
     enabledForDiskEncryption: false
     enabledForTemplateDeployment: false
     networkAcls: {
-      defaultAction: 'Deny'
+      defaultAction: 'Allow'
       bypass: 'AzureServices'
-      ipRules: [
-        { value: '98.62.142.244' }
-        { value: '8.31.229.4' }
-      ]
     }
   }
 }
