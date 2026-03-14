@@ -21,6 +21,11 @@
       "statusCode": 301
     },
     {
+      "route": "/api/get-roles",
+      "methods": ["POST"],
+      "allowedRoles": ["anonymous"]
+    },
+    {
       "route": "/api/jobs-trigger",
       "methods": ["POST"],
       "allowedRoles": ["admin"]
