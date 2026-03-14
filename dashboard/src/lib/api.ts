@@ -22,7 +22,9 @@ async function fetchJSON<T>(url: string, init?: RequestInit): Promise<T> {
       `API error ${response.status}: ${response.statusText}${body ? ` - ${body}` : ""}`
     );
   }
-  return response.json();
+  const json = await response.json();
+  // API wraps responses as {success, data} — unwrap for consumers
+  return json.data !== undefined ? json.data : json;
 }
 
 export async function fetchOverview(): Promise<DashboardOverview> {

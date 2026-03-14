@@ -3,9 +3,9 @@ import {
   odata,
   TableEntity,
 } from "@azure/data-tables";
-import { DefaultAzureCredential } from "@azure/identity";
+import { ManagedIdentityCredential } from "@azure/identity";
 
-const credential = new DefaultAzureCredential();
+const credential = new ManagedIdentityCredential();
 
 function getAccountName(): string {
   const accountName = process.env.AZURE_STORAGE_ACCOUNT_NAME;

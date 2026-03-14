@@ -94,6 +94,30 @@ module staticWebApp 'modules/static-web-app.bicep' = {
   }
 }
 
+// Function App module (standalone API backend for SWA)
+module functionApp 'modules/function-app.bicep' = {
+  name: 'function-app-deployment'
+  params: {
+    clientCode: clientCode
+    location: location
+  }
+}
+
+// Linked Backend: SWA → Function App (proxies /api/* requests)
+resource swa 'Microsoft.Web/staticSites@2023-12-01' existing = {
+  name: 'swa-csp-${clientCode}'
+}
+
+resource linkedBackend 'Microsoft.Web/staticSites/linkedBackends@2023-12-01' = {
+  parent: swa
+  name: 'backend'
+  properties: {
+    backendResourceId: functionApp.outputs.functionAppId
+    region: location
+  }
+  dependsOn: [staticWebApp]
+}
+
 // RBAC: Automation Account managed identity → Key Vault Secrets User
 resource kvSecretsRole 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
   name: guid(resourceGroup().id, keyVaultName, 'aa-csp-${clientCode}', 'Key Vault Secrets User')
@@ -139,24 +163,46 @@ resource automationContributorRole 'Microsoft.Authorization/roleAssignments@2022
   }
 }
 
-// RBAC: SWA managed identity → Storage Table Data Reader (read-only dashboard access)
-resource swaStorageRole 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (enableStorageAccount) {
-  name: guid(resourceGroup().id, 'swa-csp-${clientCode}', 'Storage Table Data Reader')
+// RBAC: Function App managed identity → Storage Table Data Contributor (read + write for sites-stale POST)
+resource funcStorageRole 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (enableStorageAccount) {
+  name: guid(resourceGroup().id, 'func-csp-${clientCode}', 'Storage Table Data Contributor')
   scope: resourceGroup()
   properties: {
-    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '76199698-9eea-4c19-bc75-cec21354c6b6')
-    principalId: staticWebApp.outputs.principalId
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '0a9a7e1f-b9d0-4cc4-a60d-0319b160aaa3')
+    principalId: functionApp.outputs.principalId
     principalType: 'ServicePrincipal'
   }
 }
 
-// RBAC: SWA managed identity → Automation Operator (read + trigger jobs, no runbook modification)
-resource swaAutomationRole 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  name: guid(resourceGroup().id, 'swa-csp-${clientCode}', 'Automation Operator')
+// RBAC: Function App managed identity → Storage Blob Data Owner (required for Functions runtime with identity-based AzureWebJobsStorage)
+resource funcBlobRole 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (enableStorageAccount) {
+  name: guid(resourceGroup().id, 'func-csp-${clientCode}', 'Storage Blob Data Owner')
+  scope: resourceGroup()
+  properties: {
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'b7e6dc6d-f1e8-4753-8033-0f276bb0955b')
+    principalId: functionApp.outputs.principalId
+    principalType: 'ServicePrincipal'
+  }
+}
+
+// RBAC: Function App managed identity → Storage Queue Data Contributor (required for Functions runtime with identity-based AzureWebJobsStorage)
+resource funcQueueRole 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (enableStorageAccount) {
+  name: guid(resourceGroup().id, 'func-csp-${clientCode}', 'Storage Queue Data Contributor')
+  scope: resourceGroup()
+  properties: {
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '974c5e8b-45b9-4653-ba55-5f855dd0fb88')
+    principalId: functionApp.outputs.principalId
+    principalType: 'ServicePrincipal'
+  }
+}
+
+// RBAC: Function App managed identity → Automation Operator (read + trigger jobs, no runbook modification)
+resource funcAutomationRole 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  name: guid(resourceGroup().id, 'func-csp-${clientCode}', 'Automation Operator')
   scope: resourceGroup()
   properties: {
     roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'd3881f73-407a-4167-8283-e981cbba0404')
-    principalId: staticWebApp.outputs.principalId
+    principalId: functionApp.outputs.principalId
     principalType: 'ServicePrincipal'
   }
 }
@@ -226,4 +272,5 @@ output storageAccountName string = enableStorageAccount ? storage!.outputs.stora
 output storageTableEndpoint string = enableStorageAccount ? storage!.outputs.tableEndpoint : ''
 output storageBlobEndpoint string = enableStorageAccount ? storage!.outputs.blobEndpoint : ''
 output staticWebAppHostname string = staticWebApp.outputs.defaultHostname
+output functionAppName string = functionApp.outputs.functionAppName
 output logAnalyticsWorkspaceName string = enableLogAnalytics ? logAnalytics.name : ''

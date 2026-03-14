@@ -1,4 +1,4 @@
-import { DefaultAzureCredential } from "@azure/identity";
+import { ManagedIdentityCredential } from "@azure/identity";
 
 export interface AutomationJob {
   id: string;
@@ -47,7 +47,7 @@ function getBaseUrl(): string {
 }
 
 async function getAccessToken(): Promise<string> {
-  const credential = new DefaultAzureCredential();
+  const credential = new ManagedIdentityCredential();
   const tokenResponse = await credential.getToken(
     "https://management.azure.com/.default"
   );
