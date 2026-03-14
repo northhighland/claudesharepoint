@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { usePolling } from "@/hooks/use-polling";
 import { fetchOverview } from "@/lib/api";
 import { HeroMetric } from "@/components/dashboard/hero-metric";
@@ -8,18 +8,38 @@ import { TimeRangeToggle } from "@/components/dashboard/time-range-toggle";
 import { StatsCards } from "@/components/dashboard/stats-cards";
 import { StorageTrendChart } from "@/components/dashboard/storage-trend-chart";
 import { ActiveJobs } from "@/components/dashboard/active-jobs";
+import { ErrorBanner } from "@/components/ui/error-banner";
 import type { TimeRange } from "@/lib/types";
 
 export default function OverviewPage(): React.ReactElement {
   const [range, setRange] = useState<TimeRange>("all");
+  const [apiError, setApiError] = useState<string | null>(null);
   const { data: overview, isLoading } = usePolling(
     `overview-${range}`,
-    () => fetchOverview(range),
+    () =>
+      fetchOverview(range).catch((err) => {
+        setApiError(
+          "API connection failed: " +
+            (err instanceof Error ? err.message : String(err)) +
+            ". Check Function App status."
+        );
+        return undefined as never;
+      }),
     30000
   );
 
+  const dismissError = useCallback(() => setApiError(null), []);
+
   return (
     <div className="space-y-8">
+      {apiError && (
+        <ErrorBanner
+          message={apiError}
+          details="The dashboard API may be unreachable. Verify that the linked Function App (func-csp-nh) is running and that your network can reach the API endpoint."
+          onDismiss={dismissError}
+        />
+      )}
+
       <div className="flex items-center justify-between">
         <div>
           <h1 className="font-display text-3xl font-bold">Impact Dashboard</h1>

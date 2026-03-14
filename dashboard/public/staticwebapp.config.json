@@ -12,7 +12,6 @@
         }
       }
     },
-    "rolesSource": "/api/get-roles"
   },
   "routes": [
     {
@@ -21,24 +20,19 @@
       "statusCode": 301
     },
     {
-      "route": "/api/get-roles",
-      "methods": ["POST"],
-      "allowedRoles": ["anonymous"]
-    },
-    {
       "route": "/api/jobs-trigger",
       "methods": ["POST"],
-      "allowedRoles": ["admin"]
+      "allowedRoles": ["authenticated"]
     },
     {
       "route": "/api/settings",
       "methods": ["PUT"],
-      "allowedRoles": ["admin"]
+      "allowedRoles": ["authenticated"]
     },
     {
       "route": "/api/sites-stale",
       "methods": ["POST"],
-      "allowedRoles": ["admin"]
+      "allowedRoles": ["authenticated"]
     },
     {
       "route": "/api/*",
