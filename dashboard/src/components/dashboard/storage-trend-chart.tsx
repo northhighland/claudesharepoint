@@ -22,12 +22,12 @@ export function StorageTrendChart({
 }: StorageTrendChartProps): React.ReactElement {
   if (isLoading) {
     return (
-      <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
-        <h3 className="mb-4 text-sm font-medium text-muted-foreground">
+      <div className="rounded-lg border border-[rgba(255,255,255,0.06)] bg-[#141414] p-6">
+        <h3 className="mb-4 text-[11px] font-medium uppercase tracking-widest text-[#6B7280]">
           Storage Reclaimed (Last 30 Days)
         </h3>
         <div className="flex h-[300px] items-center justify-center">
-          <div className="h-48 w-full animate-pulse rounded bg-muted" />
+          <div className="h-48 w-full animate-pulse rounded bg-[#1A1A1A]" />
         </div>
       </div>
     );
@@ -36,12 +36,12 @@ export function StorageTrendChart({
   const chartData = data ?? [];
 
   return (
-    <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
-      <h3 className="mb-4 text-sm font-medium text-muted-foreground">
+    <div className="rounded-lg border border-[rgba(255,255,255,0.06)] bg-[#141414] p-6">
+      <h3 className="mb-4 text-[11px] font-medium uppercase tracking-widest text-[#6B7280]">
         Storage Reclaimed (Last 30 Days)
       </h3>
       {chartData.length === 0 ? (
-        <div className="flex h-[300px] items-center justify-center text-sm text-muted-foreground">
+        <div className="flex h-[300px] items-center justify-center text-[13px] text-[#6B7280]">
           No data available
         </div>
       ) : (
@@ -49,18 +49,18 @@ export function StorageTrendChart({
           <AreaChart data={chartData}>
             <defs>
               <linearGradient id="storageGradient" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="hsl(221, 83%, 53%)" stopOpacity={0.3} />
-                <stop offset="95%" stopColor="hsl(221, 83%, 53%)" stopOpacity={0} />
+                <stop offset="5%" stopColor="#10B981" stopOpacity={0.15} />
+                <stop offset="95%" stopColor="#10B981" stopOpacity={0} />
               </linearGradient>
             </defs>
             <CartesianGrid
               strokeDasharray="3 3"
-              className="stroke-border"
+              stroke="rgba(255,255,255,0.04)"
               vertical={false}
             />
             <XAxis
               dataKey="date"
-              className="text-xs"
+              tick={{ fill: "#6B7280", fontSize: 11 }}
               tickLine={false}
               axisLine={false}
               tickFormatter={(value: string) =>
@@ -71,18 +71,21 @@ export function StorageTrendChart({
               }
             />
             <YAxis
-              className="text-xs"
+              tick={{ fill: "#6B7280", fontSize: 11 }}
               tickLine={false}
               axisLine={false}
               tickFormatter={(value: number) => `${value} GB`}
             />
             <Tooltip
               contentStyle={{
-                backgroundColor: "hsl(var(--card))",
-                border: "1px solid hsl(var(--border))",
+                backgroundColor: "#141414",
+                border: "1px solid rgba(255,255,255,0.06)",
                 borderRadius: "0.5rem",
-                fontSize: "0.875rem",
+                fontSize: "0.8125rem",
+                borderLeft: "2px solid #10B981",
               }}
+              labelStyle={{ color: "#6B7280" }}
+              itemStyle={{ color: "#F9FAFB" }}
               labelFormatter={(label: string) =>
                 new Date(label).toLocaleDateString("en-US", {
                   month: "long",
@@ -95,8 +98,8 @@ export function StorageTrendChart({
             <Area
               type="monotone"
               dataKey="reclaimedGB"
-              stroke="hsl(221, 83%, 53%)"
-              strokeWidth={2}
+              stroke="#10B981"
+              strokeWidth={1.5}
               fill="url(#storageGradient)"
             />
           </AreaChart>
