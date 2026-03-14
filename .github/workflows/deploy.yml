@@ -119,6 +119,8 @@ jobs:
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
+      # NOTE: To enable metric alerts (job failure notifications), add
+      # alertRecipients=<email> to the parameters below.
       - name: Deploy Bicep
         uses: azure/arm-deploy@v2
         with:

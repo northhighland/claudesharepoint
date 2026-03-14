@@ -4,6 +4,7 @@ import { useState } from "react";
 import { ArrowUpDown } from "lucide-react";
 import { cn, formatDate, formatDuration, formatBytes, getStatusColor } from "@/lib/utils";
 import type { JobRun } from "@/lib/types";
+import { JobProgress } from "@/components/jobs/job-progress";
 
 interface JobTableProps {
   jobs: JobRun[];
@@ -118,6 +119,11 @@ export function JobTable({ jobs, isLoading, onSelectJob }: JobTableProps): React
                     >
                       {job.status}
                     </span>
+                    {job.status === "Running" && (
+                      <div className="mt-1">
+                        <JobProgress job={job} compact />
+                      </div>
+                    )}
                   </td>
                   <td className="whitespace-nowrap px-4 py-3 text-sm text-muted-foreground">
                     {formatDate(job.startedAt)}

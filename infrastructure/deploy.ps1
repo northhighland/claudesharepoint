@@ -25,7 +25,8 @@
     Azure region (e.g., eastus, westus2).
 
 .PARAMETER AlertRecipients
-    Email for alert notifications (optional).
+    Email for alert notifications. Required to enable metric alerts (job failure
+    notifications). If omitted, the action group and alert rules are skipped.
 
 .PARAMETER SkipPrerequisites
     Skip prerequisite validation.

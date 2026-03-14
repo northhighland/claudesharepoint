@@ -328,26 +328,22 @@ function Get-AllSites {
         Retrieves all tenant sites excluding OneDrive, redirect templates, and any
         configured exclusion patterns. Returns site objects with Url, Title, and
         StorageUsageCurrent properties.
-    .PARAMETER ExclusionPatterns
-        Array of URL patterns to exclude (supports wildcards)
     .PARAMETER IncludeGroupSites
         Include group-connected sites (default: true)
     .OUTPUTS
         Array of site objects (Url, Title, StorageUsageCurrent, Template)
     .EXAMPLE
-        $sites = Get-AllSites -ExclusionPatterns @('search', 'compliance', 'appcatalog')
+        $sites = Get-AllSites
     #>
     [CmdletBinding()]
     [OutputType([array])]
     param(
-        [string[]]$ExclusionPatterns = @(),
-
         [bool]$IncludeGroupSites = $true
     )
 
     Write-Output "Enumerating tenant sites..."
 
-    # Get all sites excluding OneDrive personal sites
+    # Get all sites excluding OneDrive personal sites and redirect templates
     $allSites = Get-PnPTenantSite -IncludeOneDriveSites:$false |
         Where-Object {
             $_.Template -notlike "*REDIRECT*" -and
@@ -356,24 +352,6 @@ function Get-AllSites {
         Select-Object Url, Title, StorageUsageCurrent, Template
 
     Write-Output "Total sites found: $($allSites.Count)"
-
-    # Apply exclusion patterns
-    if ($ExclusionPatterns.Count -gt 0) {
-        $filteredSites = $allSites | Where-Object {
-            $url = $_.Url
-            $excluded = $false
-            foreach ($pattern in $ExclusionPatterns) {
-                if ($url -like "*$pattern*") {
-                    $excluded = $true
-                    Write-Verbose "Excluding site: $url (matched pattern: $pattern)"
-                    break
-                }
-            }
-            -not $excluded
-        }
-        Write-Output "Sites after exclusions: $($filteredSites.Count) (excluded $($allSites.Count - $filteredSites.Count))"
-        return @($filteredSites)
-    }
 
     return @($allSites)
 }
@@ -1111,7 +1089,6 @@ function Get-SpaceAgentConfig {
 
     $config = @{
         DisableSchedule    = $false
-        ExclusionPatterns  = @()
         LastAssessmentTime = $null
         ExpireAfterDays    = 90
         MaxMajorVersions   = 100
@@ -1141,12 +1118,6 @@ function Get-SpaceAgentConfig {
     # Boolean variables
     $disable = & $loadVar 'DisableSchedule'
     if ($null -ne $disable) { $config.DisableSchedule = [bool]$disable }
-
-    # String variables (comma-separated -> array)
-    $patterns = & $loadVar 'ExclusionPatterns'
-    if ($patterns) {
-        $config.ExclusionPatterns = @($patterns -split ',' | ForEach-Object { $_.Trim() } | Where-Object { $_ })
-    }
 
     # DateTime variables
     $lastAssess = & $loadVar 'LastAssessmentTime'

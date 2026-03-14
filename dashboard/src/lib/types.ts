@@ -1,8 +1,15 @@
 export type JobType =
   | "VersionCleanup"
   | "QuotaManager"
-  | "StaleSiteAnalysis"
-  | "RecycleBinCleanup";
+  | "StaleSiteDetector"
+  | "RecycleBinCleaner";
+
+export const JOB_TYPE_DISPLAY_NAMES: Record<JobType, string> = {
+  VersionCleanup: "Version Cleanup",
+  QuotaManager: "Quota Manager",
+  StaleSiteDetector: "Stale Site Detector",
+  RecycleBinCleaner: "Recycle Bin Cleaner",
+};
 
 export type JobStatus =
   | "Queued"
@@ -28,6 +35,10 @@ export interface JobRun {
   errorMessage?: string;
   triggeredBy: string;
   isDryRun: boolean;
+  totalWaves?: number;
+  completedWaves?: number;
+  jobsSucceeded?: number;
+  jobsFailed?: number;
 }
 
 export interface VersionCleanupResult {
@@ -111,7 +122,6 @@ export interface AppSettings {
   expireAfterDays: number;
   maxMajorVersions: number;
   quotaIncrementGB: number;
-  exclusionPatterns: string[];
   teamsWebhookUrl: string;
   notificationEmail: string;
 }

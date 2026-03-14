@@ -3,13 +3,11 @@ import { queryEntities, getEntity } from "../shared/table-client";
 import { jsonResponse, errorResponse } from "../shared/response";
 import {
   JobRunEntity,
-  VersionCleanupResultEntity,
-  QuotaStatusEntity,
-  StaleSiteEntity,
-  RecycleBinResultEntity,
+  VALID_JOB_TYPES,
+  ValidJobType,
 } from "../shared/types";
 import { TableEntity, odata } from "@azure/data-tables";
-import { VALID_JOB_TYPES, ValidJobType } from "../shared/types";
+import { mapJobRunEntity } from "../shared/transforms";
 
 /** Map job types to their results table names. */
 const RESULTS_TABLE_MAP: Record<string, string> = {
@@ -43,7 +41,7 @@ async function handleListJobs(
   context: Context,
   req: HttpRequest
 ): Promise<void> {
-  const typeFilter = req.query.type;
+  const typeFilter = req.query.jobType;
   const statusFilter = req.query.status;
   const topParam = parseInt(req.query.top ?? "50", 10);
   const top = Math.min(Math.max(1, topParam), 200);
@@ -79,7 +77,7 @@ async function handleListJobs(
   // Sort by StartTime descending
   jobs.sort((a, b) => (b.StartTime ?? "").localeCompare(a.StartTime ?? ""));
 
-  context.res = jsonResponse(jobs);
+  context.res = jsonResponse(jobs.map(mapJobRunEntity));
 }
 
 async function handleGetJob(
@@ -121,7 +119,7 @@ async function handleGetJob(
     }
   }
 
-  context.res = jsonResponse({ job, results });
+  context.res = jsonResponse({ job: mapJobRunEntity(job), results });
 }
 
 export default handler;

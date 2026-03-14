@@ -12,7 +12,7 @@ param enableStorageAccount bool = true
 @description('Enable Log Analytics workspace')
 param enableLogAnalytics bool = true
 
-@description('Email for alert notifications (optional)')
+@description('Email for alert notifications (optional). IMPORTANT: Must be set to a non-empty value to enable metric alerts (action group + job failure alert). Pass via deploy.ps1 -AlertRecipients or CI/CD parameters.')
 param alertRecipients string = ''
 
 @description('Log Analytics retention in days')

@@ -8,6 +8,7 @@ import {
 import { jsonResponse, errorResponse } from "../shared/response";
 import { StaleSiteEntity, StaleSiteActionRequest } from "../shared/types";
 import { getClientPrincipal } from "../shared/auth";
+import { mapStaleSiteEntity } from "../shared/transforms";
 
 const TABLE_NAME = "StaleSiteRecommendations";
 const VALID_ACTIONS = ["Keep", "Archive", "Delete"] as const;
@@ -65,7 +66,7 @@ async function handleGet(
   // Sort by StalenessScore descending
   results.sort((a, b) => (b.StalenessScore ?? 0) - (a.StalenessScore ?? 0));
 
-  context.res = jsonResponse(results);
+  context.res = jsonResponse(results.map(mapStaleSiteEntity));
 }
 
 async function handlePost(
@@ -138,7 +139,7 @@ async function handlePost(
     target.rowKey as string
   );
 
-  context.res = jsonResponse(updated);
+  context.res = jsonResponse(updated ? mapStaleSiteEntity(updated) : null);
 }
 
 export default handler;

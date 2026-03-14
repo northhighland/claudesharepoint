@@ -2,6 +2,7 @@ import { AzureFunction, Context, HttpRequest } from "@azure/functions";
 import { queryEntities } from "../shared/table-client";
 import { jsonResponse, errorResponse } from "../shared/response";
 import { QuotaStatusEntity } from "../shared/types";
+import { mapQuotaStatusEntity } from "../shared/transforms";
 
 const TABLE_NAME = "QuotaStatus";
 
@@ -34,7 +35,7 @@ const handler: AzureFunction = async function (
     // Sort by PercentUsed descending (highest usage first)
     results.sort((a, b) => (b.PercentUsed ?? 0) - (a.PercentUsed ?? 0));
 
-    context.res = jsonResponse(results);
+    context.res = jsonResponse(results.map(mapQuotaStatusEntity));
   } catch (error: unknown) {
     context.log.error("quota-status error:", error);
     context.res = errorResponse("An internal error occurred.");

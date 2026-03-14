@@ -12,7 +12,6 @@ export default function SettingsPage(): React.ReactElement {
     expireAfterDays: 90,
     maxMajorVersions: 50,
     quotaIncrementGB: 1,
-    exclusionPatterns: [],
     teamsWebhookUrl: "",
     notificationEmail: "",
   });
@@ -38,16 +37,6 @@ export default function SettingsPage(): React.ReactElement {
     } finally {
       setSaving(false);
     }
-  };
-
-  const handleExclusionsChange = (value: string): void => {
-    setForm((f) => ({
-      ...f,
-      exclusionPatterns: value
-        .split("\n")
-        .map((line) => line.trim())
-        .filter(Boolean),
-    }));
   };
 
   if (isLoading) {
@@ -170,30 +159,6 @@ export default function SettingsPage(): React.ReactElement {
                 }))
               }
               className="w-full max-w-xs rounded-lg border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-            />
-          </div>
-        </div>
-
-        {/* Exclusions */}
-        <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
-          <h2 className="mb-4 text-lg font-semibold">Exclusions</h2>
-          <div>
-            <label
-              htmlFor="exclusionPatterns"
-              className="block text-sm font-medium text-foreground"
-            >
-              Exclusion Patterns
-            </label>
-            <p className="mb-2 text-xs text-muted-foreground">
-              One pattern per line. Sites matching these patterns will be skipped.
-            </p>
-            <textarea
-              id="exclusionPatterns"
-              rows={5}
-              value={form.exclusionPatterns.join("\n")}
-              onChange={(e) => handleExclusionsChange(e.target.value)}
-              placeholder={"*/sites/legal-hold/*\n*/teams/archived-*"}
-              className="w-full rounded-lg border border-border bg-background px-3 py-2 font-mono text-sm focus:outline-none focus:ring-2 focus:ring-ring"
             />
           </div>
         </div>
