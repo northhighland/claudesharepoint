@@ -9,29 +9,29 @@ interface QuotaHeatmapProps {
 }
 
 function getHeatColor(percent: number): string {
-  if (percent >= 95) return "bg-red-500 text-white";
-  if (percent >= 85) return "bg-orange-400 text-white";
-  if (percent >= 70) return "bg-yellow-400 text-yellow-950";
-  return "bg-green-400 text-green-950";
+  if (percent >= 95) return "bg-red-500/80 text-red-100";
+  if (percent >= 85) return "bg-amber-500/60 text-amber-100";
+  if (percent >= 70) return "bg-amber-500/30 text-amber-200";
+  return "bg-emerald-500/20 text-emerald-200";
 }
 
 function getHeatBorder(percent: number): string {
-  if (percent >= 95) return "border-red-600";
-  if (percent >= 85) return "border-orange-500";
-  if (percent >= 70) return "border-yellow-500";
-  return "border-green-500";
+  if (percent >= 95) return "border-red-500/40";
+  if (percent >= 85) return "border-amber-500/30";
+  if (percent >= 70) return "border-amber-500/20";
+  return "border-emerald-500/20";
 }
 
 export function QuotaHeatmap({ sites, isLoading }: QuotaHeatmapProps): React.ReactElement {
   if (isLoading) {
     return (
-      <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
-        <h3 className="mb-4 text-sm font-medium text-muted-foreground">
+      <div className="rounded-lg border border-[rgba(255,255,255,0.06)] bg-[#141414] p-6">
+        <h3 className="mb-4 text-[11px] font-medium uppercase tracking-widest text-[#6B7280]">
           Quota Usage Heatmap
         </h3>
         <div className="grid grid-cols-4 gap-2 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-10">
           {Array.from({ length: 30 }).map((_, i) => (
-            <div key={i} className="h-16 animate-pulse rounded bg-muted" />
+            <div key={i} className="h-16 animate-pulse rounded bg-[#1A1A1A]" />
           ))}
         </div>
       </div>
@@ -41,31 +41,31 @@ export function QuotaHeatmap({ sites, isLoading }: QuotaHeatmapProps): React.Rea
   const sorted = [...sites].sort((a, b) => b.percentUsed - a.percentUsed);
 
   return (
-    <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
+    <div className="rounded-lg border border-[rgba(255,255,255,0.06)] bg-[#141414] p-6">
       <div className="mb-4 flex items-center justify-between">
-        <h3 className="text-sm font-medium text-muted-foreground">Quota Usage Heatmap</h3>
-        <div className="flex items-center gap-3 text-xs text-muted-foreground">
+        <h3 className="text-[11px] font-medium uppercase tracking-widest text-[#6B7280]">Quota Usage Heatmap</h3>
+        <div className="flex items-center gap-3 text-[11px] text-[#6B7280]">
           <span className="flex items-center gap-1">
-            <span className="inline-block h-3 w-3 rounded bg-green-400" />
+            <span className="inline-block h-3 w-3 rounded bg-emerald-500/20" />
             &lt;70%
           </span>
           <span className="flex items-center gap-1">
-            <span className="inline-block h-3 w-3 rounded bg-yellow-400" />
+            <span className="inline-block h-3 w-3 rounded bg-amber-500/30" />
             70-85%
           </span>
           <span className="flex items-center gap-1">
-            <span className="inline-block h-3 w-3 rounded bg-orange-400" />
+            <span className="inline-block h-3 w-3 rounded bg-amber-500/60" />
             85-95%
           </span>
           <span className="flex items-center gap-1">
-            <span className="inline-block h-3 w-3 rounded bg-red-500" />
+            <span className="inline-block h-3 w-3 rounded bg-red-500/80" />
             &gt;95%
           </span>
         </div>
       </div>
 
       {sorted.length === 0 ? (
-        <div className="flex h-40 items-center justify-center text-sm text-muted-foreground">
+        <div className="flex h-40 items-center justify-center text-[13px] text-[#6B7280]">
           No quota data available
         </div>
       ) : (
@@ -85,15 +85,15 @@ export function QuotaHeatmap({ sites, isLoading }: QuotaHeatmapProps): React.Rea
                   ? `${site.siteName.substring(0, 10)}...`
                   : site.siteName}
               </span>
-              <span className="text-xs font-bold">{Math.round(site.percentUsed)}%</span>
+              <span className="text-[11px] font-bold">{Math.round(site.percentUsed)}%</span>
 
               {/* Tooltip */}
-              <div className="pointer-events-none absolute bottom-full left-1/2 z-10 mb-2 hidden w-48 -translate-x-1/2 rounded-lg border border-border bg-card p-2 text-xs text-foreground shadow-lg group-hover:block">
+              <div className="pointer-events-none absolute bottom-full left-1/2 z-10 mb-2 hidden w-48 -translate-x-1/2 rounded-lg border border-[rgba(255,255,255,0.06)] bg-[#1A1A1A] p-2 text-[11px] text-[#F9FAFB] group-hover:block">
                 <p className="font-medium">{site.siteName}</p>
-                <p className="mt-1 text-muted-foreground">
+                <p className="mt-1 text-[#6B7280]">
                   {formatBytes(site.usedBytes)} / {formatBytes(site.quotaBytes)}
                 </p>
-                <p className="text-muted-foreground">{site.percentUsed.toFixed(1)}% used</p>
+                <p className="text-[#6B7280]">{site.percentUsed.toFixed(1)}% used</p>
               </div>
             </div>
           ))}

@@ -16,13 +16,13 @@ export function QuotaHistory({ sites, isLoading }: QuotaHistoryProps): React.Rea
 
   if (isLoading) {
     return (
-      <div className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
-        <div className="border-b border-border px-4 py-3">
-          <h3 className="text-sm font-medium">Auto-Increase History</h3>
+      <div className="overflow-hidden rounded-lg border border-[rgba(255,255,255,0.06)] bg-[#141414]">
+        <div className="border-b border-[rgba(255,255,255,0.06)] px-4 py-3">
+          <h3 className="text-[11px] font-medium uppercase tracking-widest text-[#6B7280]">Auto-Increase History</h3>
         </div>
         <div className="space-y-2 p-4">
           {[1, 2, 3].map((i) => (
-            <div key={i} className="h-10 animate-pulse rounded bg-muted" />
+            <div key={i} className="h-10 animate-pulse rounded bg-[#1A1A1A]" />
           ))}
         </div>
       </div>
@@ -30,64 +30,64 @@ export function QuotaHistory({ sites, isLoading }: QuotaHistoryProps): React.Rea
   }
 
   return (
-    <div className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
-      <div className="border-b border-border px-4 py-3">
-        <h3 className="text-sm font-medium">Auto-Increase History</h3>
+    <div className="overflow-hidden rounded-lg border border-[rgba(255,255,255,0.06)] bg-[#141414]">
+      <div className="border-b border-[rgba(255,255,255,0.06)] px-4 py-3">
+        <h3 className="text-[11px] font-medium uppercase tracking-widest text-[#6B7280]">Auto-Increase History</h3>
       </div>
       <div className="overflow-x-auto">
         <table className="w-full">
-          <thead className="bg-muted/50">
+          <thead>
             <tr>
-              <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">
+              <th className="px-4 py-3 text-left text-[11px] font-medium uppercase tracking-widest text-[#6B7280]">
                 Site
               </th>
-              <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">
+              <th className="px-4 py-3 text-left text-[11px] font-medium uppercase tracking-widest text-[#6B7280]">
                 Previous Quota
               </th>
-              <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">
+              <th className="px-4 py-3 text-left text-[11px] font-medium uppercase tracking-widest text-[#6B7280]">
                 New Quota
               </th>
-              <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">
+              <th className="px-4 py-3 text-left text-[11px] font-medium uppercase tracking-widest text-[#6B7280]">
                 Date
               </th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-border">
+          <tbody className="divide-y divide-[rgba(255,255,255,0.04)]">
             {increased.length === 0 ? (
               <tr>
                 <td
                   colSpan={4}
-                  className="px-4 py-8 text-center text-sm text-muted-foreground"
+                  className="px-4 py-8 text-center text-[13px] text-[#6B7280]"
                 >
                   No auto-increases recorded
                 </td>
               </tr>
             ) : (
               increased.map((site) => (
-                <tr key={`${site.rowKey}-${site.increasedAt}`} className="hover:bg-accent/50">
-                  <td className="px-4 py-3 text-sm">
-                    <div className="font-medium">{site.siteName}</div>
-                    <div className="text-xs text-muted-foreground">{site.siteUrl}</div>
+                <tr key={`${site.rowKey}-${site.increasedAt}`} className="hover:bg-[rgba(255,255,255,0.03)]">
+                  <td className="px-4 py-3 text-[13px]">
+                    <div className="font-medium text-[#F9FAFB]">{site.siteName}</div>
+                    <div className="text-[11px] text-[#6B7280]">{site.siteUrl}</div>
                   </td>
-                  <td className="px-4 py-3 text-sm text-muted-foreground">
+                  <td className="px-4 py-3 text-[13px] text-[#6B7280]">
                     {site.previousQuotaBytes ? formatBytes(site.previousQuotaBytes) : "--"}
                   </td>
-                  <td className="px-4 py-3 text-sm">
+                  <td className="px-4 py-3 text-[13px]">
                     <div className="flex items-center gap-2">
                       {site.previousQuotaBytes && (
                         <>
-                          <span className="text-muted-foreground">
+                          <span className="text-[#6B7280]">
                             {formatBytes(site.previousQuotaBytes)}
                           </span>
-                          <ArrowRight className="h-3 w-3 text-muted-foreground" />
+                          <ArrowRight className="h-3 w-3 text-[#6B7280]" />
                         </>
                       )}
-                      <span className="font-medium text-green-600">
+                      <span className="font-medium text-emerald-400">
                         {site.newQuotaBytes ? formatBytes(site.newQuotaBytes) : "--"}
                       </span>
                     </div>
                   </td>
-                  <td className="whitespace-nowrap px-4 py-3 text-sm text-muted-foreground">
+                  <td className="whitespace-nowrap px-4 py-3 text-[13px] text-[#6B7280]">
                     {site.increasedAt ? formatDate(site.increasedAt) : "--"}
                   </td>
                 </tr>
