@@ -12,6 +12,11 @@
   },
   "routes": [
     {
+      "route": "/jobs",
+      "redirect": "/versions",
+      "statusCode": 301
+    },
+    {
       "route": "/api/jobs-trigger",
       "methods": ["POST"],
       "allowedRoles": ["admin"]
