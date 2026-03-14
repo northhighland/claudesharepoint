@@ -45,7 +45,7 @@ export async function fetchJobs(filters?: JobFilters): Promise<JobRun[]> {
 export async function fetchJob(
   runId: string
 ): Promise<{ job: JobRun; results: VersionCleanupResult[] }> {
-  return fetchJSON(`/jobs?runId=${encodeURIComponent(runId)}`);
+  return fetchJSON(`/jobs/${encodeURIComponent(runId)}`);
 }
 
 export async function triggerJob(
