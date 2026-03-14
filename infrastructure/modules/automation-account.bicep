@@ -50,6 +50,10 @@ var automationVariables = [
   { name: 'KeyVaultName', value: 'kv-csp-${clientCode}', description: 'Key Vault name for SPO credentials' }
   { name: 'StorageAccountName', value: 'stcsp${clientCode}', description: 'Storage account name for Table Storage results' }
   { name: 'AutomationAccountName', value: 'aa-csp-${clientCode}', description: 'Automation account name for child runbook dispatch' }
+  { name: 'ScheduleVersionCleanup', value: '', description: 'JSON schedule config for Version Cleanup job' }
+  { name: 'ScheduleRecycleBinCleaner', value: '', description: 'JSON schedule config for Recycle Bin Cleaner job' }
+  { name: 'ScheduleQuotaManager', value: '', description: 'JSON schedule config for Quota Manager job' }
+  { name: 'ScheduleStaleSiteDetector', value: '', description: 'JSON schedule config for Stale Site Detector job' }
 ]
 
 resource variables 'Microsoft.Automation/automationAccounts/variables@2023-11-01' = [

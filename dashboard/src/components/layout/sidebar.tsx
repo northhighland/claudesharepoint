@@ -5,7 +5,8 @@ import { usePathname } from "next/navigation";
 import { useState } from "react";
 import {
   LayoutDashboard,
-  Play,
+  FileStack,
+  Trash2,
   HardDrive,
   Archive,
   Settings,
@@ -17,7 +18,8 @@ import { cn } from "@/lib/utils";
 
 const navItems = [
   { href: "/", label: "Overview", icon: LayoutDashboard },
-  { href: "/jobs", label: "Jobs", icon: Play },
+  { href: "/versions", label: "Version Control", icon: FileStack },
+  { href: "/recycle-bin", label: "Recycle Bin", icon: Trash2 },
   { href: "/quota", label: "Quota", icon: HardDrive },
   { href: "/stale-sites", label: "Stale Sites", icon: Archive },
   { href: "/settings", label: "Settings", icon: Settings },

@@ -49,7 +49,7 @@ export function ActiveJobs({ jobs, isLoading }: ActiveJobsProps): React.ReactEle
             return (
               <Link
                 key={job.runId}
-                href="/jobs"
+                href="/versions"
                 className="block glass-card-hover rounded-lg p-4 cursor-pointer"
               >
                 <div className="flex items-start justify-between">

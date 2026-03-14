@@ -5,7 +5,7 @@ export type JobType =
   | "RecycleBinCleaner";
 
 export const JOB_TYPE_DISPLAY_NAMES: Record<JobType, string> = {
-  VersionCleanup: "Version Cleanup",
+  VersionCleanup: "Version Control",
   QuotaManager: "Quota Manager",
   StaleSiteDetector: "Stale Site Detector",
   RecycleBinCleaner: "Recycle Bin Cleaner",
@@ -137,12 +137,21 @@ export interface QuotaStatusResponse {
   distribution: QuotaDistributionBucket[];
 }
 
+export interface JobSchedule {
+  enabled: boolean;
+  frequency: "daily" | "weekly" | "monthly";
+  dayOfWeek?: number; // 0=Sun, 1=Mon, ... 6=Sat (for weekly)
+  dayOfMonth?: number; // 1-28 (for monthly)
+  timeUtc: string; // "02:00" format
+}
+
 export interface AppSettings {
   expireAfterDays: number;
   maxMajorVersions: number;
   quotaIncrementGB: number;
   teamsWebhookUrl: string;
   notificationEmail: string;
+  schedules: Record<JobType, JobSchedule>;
 }
 
 export interface JobFilters {

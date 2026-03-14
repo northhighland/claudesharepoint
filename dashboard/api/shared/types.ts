@@ -90,6 +90,8 @@ export interface StaleSiteActionRequest {
 
 export type SettingsMap = Record<string, string>;
 
+export type JobStatus = "Running" | "Completed" | "Failed" | "Stopped" | "Stalled";
+
 export const VALID_JOB_TYPES = [
   "VersionCleanup",
   "QuotaManager",
