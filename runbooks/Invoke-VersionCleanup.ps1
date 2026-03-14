@@ -106,7 +106,7 @@ $resultTableName = "VersionCleanupResults"
 $versionableExtensions = @(
     '.docx', '.doc', '.xlsx', '.xls',
     '.pptx', '.ppt', '.one', '.onetoc2',
-    '.pdf', '.vsdx', '.vsd'
+    '.vsdx', '.vsd'
 )
 
 # ---------------------------------------------------------------------------

@@ -5,6 +5,7 @@ import { cn, formatDate, formatDuration, formatBytes, getStatusColor } from "@/l
 import { usePolling } from "@/hooks/use-polling";
 import { fetchJob } from "@/lib/api";
 import type { JobRun, VersionCleanupResult } from "@/lib/types";
+import { JobProgress } from "@/components/jobs/job-progress";
 
 interface JobDetailProps {
   job: JobRun;
@@ -73,6 +74,14 @@ export function JobDetail({ job, onBack }: JobDetailProps): React.ReactElement {
           </p>
         </div>
       </div>
+
+      {/* Job progress */}
+      {(job.status === "Running" || (job.totalWaves ?? 0) > 0) && (
+        <div className="rounded-xl border border-border bg-card p-4 shadow-sm">
+          <h3 className="mb-3 text-sm font-medium">Progress</h3>
+          <JobProgress job={job} />
+        </div>
+      )}
 
       {/* Error message */}
       {job.errorMessage && (

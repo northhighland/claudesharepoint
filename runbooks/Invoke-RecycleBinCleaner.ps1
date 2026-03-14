@@ -245,73 +245,128 @@ foreach ($siteUrl in $sites) {
         } catch {}
 
         # --- Get second-stage recycle bin items ---
-        $recycleBinItems = $null
         $recycleSuccess = $false
 
-        try {
-            $recycleBinItems = Get-PnPRecycleBinItem -SecondStage -RowLimit 5000 -ErrorAction Stop
-            $recycleSuccess = $true
-        } catch {
-            $errMsg = $_.Exception.Message
-            if ($errMsg -match "Access denied|403|Forbidden|unauthorized" -and -not $adminEscalated) {
-                Write-Output "  Recycle bin access denied - escalating..."
-                $added = Add-SiteAdmin -SiteUrl $siteUrl
-                if ($added) {
-                    $adminEscalated = $true
-                    $result.AdminEscalated = $true
-                    $stats.AdminEscalated++
-
-                    # Reconnect and retry
-                    try { Disconnect-PnPOnline -ErrorAction SilentlyContinue } catch {}
-                    Connect-PnPSite -Url $siteUrl
-                    $recycleBinItems = Get-PnPRecycleBinItem -SecondStage -RowLimit 5000 -ErrorAction Stop
-                    $recycleSuccess = $true
+        # Helper: fetch one page with admin escalation retry
+        $fetchPage = {
+            param([int]$RowLimit)
+            $items = $null
+            $ok = $false
+            try {
+                $fetchParams = @{ SecondStage = $true; ErrorAction = 'Stop' }
+                if ($RowLimit -gt 0) { $fetchParams['RowLimit'] = $RowLimit }
+                $items = Get-PnPRecycleBinItem @fetchParams
+                $ok = $true
+            } catch {
+                $errMsg = $_.Exception.Message
+                if ($errMsg -match "Access denied|403|Forbidden|unauthorized" -and -not $adminEscalated) {
+                    Write-Output "  Recycle bin access denied - escalating..."
+                    $added = Add-SiteAdmin -SiteUrl $siteUrl
+                    if ($added) {
+                        $adminEscalated = $true
+                        $result.AdminEscalated = $true
+                        $stats.AdminEscalated++
+                        try { Disconnect-PnPOnline -ErrorAction SilentlyContinue } catch {}
+                        Connect-PnPSite -Url $siteUrl
+                        $items = Get-PnPRecycleBinItem @fetchParams
+                        $ok = $true
+                    }
                 }
+                if (-not $ok) { throw }
             }
-
-            if (-not $recycleSuccess) { throw }
+            return $items
         }
 
-        # --- Process recycle bin items ---
-        if ($recycleBinItems -and $recycleBinItems.Count -gt 0) {
-            $totalSize   = ($recycleBinItems | Measure-Object -Property Size -Sum).Sum
-            $totalSizeMB = [math]::Round($totalSize / 1MB, 2)
+        if (-not $DryRun) {
+            # --- LIVE MODE: paginated fetch-clear loop (5000 per batch) ---
+            $batchNum = 0
+            $siteHasData = $false
+            do {
+                $batchNum++
+                $recycleBinItems = & $fetchPage 5000
+                $recycleSuccess = $true
 
-            $result.ItemsFound = $recycleBinItems.Count
-            $result.SizeMB     = $totalSizeMB
+                if (-not $recycleBinItems -or $recycleBinItems.Count -eq 0) { break }
 
-            $stats.SitesWithData++
-            $stats.TotalItems  += $recycleBinItems.Count
-            $stats.TotalSizeMB += $totalSizeMB
+                if (-not $siteHasData) {
+                    $siteHasData = $true
+                    $stats.SitesWithData++
+                }
 
-            Write-Output "  Found: $($recycleBinItems.Count) items ($totalSizeMB MB)"
+                $batchSize   = ($recycleBinItems | Measure-Object -Property Size -Sum).Sum
+                $batchSizeMB = [math]::Round($batchSize / 1MB, 2)
+                $batchCount  = $recycleBinItems.Count
 
-            if (-not $DryRun) {
-                # Clear second-stage recycle bin
+                $result.ItemsFound += $batchCount
+                $result.SizeMB     += $batchSizeMB
+                $stats.TotalItems  += $batchCount
+                $stats.TotalSizeMB += $batchSizeMB
+
+                Write-Output "  Batch $batchNum: $batchCount items ($batchSizeMB MB)"
+
                 try {
                     Clear-PnPRecycleBinItem -SecondStage -Force -ErrorAction Stop
-                    $result.ItemsCleared     = $recycleBinItems.Count
-                    $result.SpaceReclaimedMB = $totalSizeMB
-                    $stats.ItemsCleared      += $recycleBinItems.Count
-                    $stats.SpaceReclaimedMB  += $totalSizeMB
-
-                    Write-Output "  CLEARED: $($recycleBinItems.Count) items ($totalSizeMB MB reclaimed)"
+                    $result.ItemsCleared     += $batchCount
+                    $result.SpaceReclaimedMB += $batchSizeMB
+                    $stats.ItemsCleared      += $batchCount
+                    $stats.SpaceReclaimedMB  += $batchSizeMB
+                    Write-Output "  CLEARED batch $batchNum: $batchCount items ($batchSizeMB MB reclaimed)"
                 } catch {
                     $result.Status = "PartialError"
-                    $result.ErrorMessage = "Clear failed: $($_.Exception.Message)"
-                    Write-Warning "  Failed to clear: $($_.Exception.Message)"
+                    $result.ErrorMessage = "Clear failed on batch ${batchNum}: $($_.Exception.Message)"
+                    Write-Warning "  Failed to clear batch ${batchNum}: $($_.Exception.Message)"
+                    break
                 }
+            } while ($batchCount -ge 5000)
+
+            if ($result.ItemsFound -gt 0) {
+                Write-Output "  Total: $($result.ItemsFound) items cleared ($([math]::Round($result.SpaceReclaimedMB, 2)) MB reclaimed)"
             } else {
-                # DryRun: report what would be cleared
-                $result.ItemsCleared     = $recycleBinItems.Count  # would-clear count
+                Write-Output "  Empty - no second-stage items"
+            }
+
+        } else {
+            # --- DRYRUN MODE: fetch all for accurate count ---
+            $recycleBinItems = $null
+            try {
+                $recycleBinItems = & $fetchPage 0
+                $recycleSuccess = $true
+            } catch {
+                if ($_.Exception.Message -match "timeout|timed out|operation.*expired") {
+                    Write-Warning "  Full enumeration timed out - falling back to 5000 estimate"
+                    try {
+                        $recycleBinItems = & $fetchPage 5000
+                        $recycleSuccess = $true
+                        if ($recycleBinItems -and $recycleBinItems.Count -ge 5000) {
+                            Write-Warning "  Actual count may exceed 5000 (capped at RowLimit)"
+                        }
+                    } catch {
+                        throw
+                    }
+                } else {
+                    throw
+                }
+            }
+
+            if ($recycleBinItems -and $recycleBinItems.Count -gt 0) {
+                $totalSize   = ($recycleBinItems | Measure-Object -Property Size -Sum).Sum
+                $totalSizeMB = [math]::Round($totalSize / 1MB, 2)
+
+                $result.ItemsFound       = $recycleBinItems.Count
+                $result.SizeMB           = $totalSizeMB
+                $result.ItemsCleared     = $recycleBinItems.Count
                 $result.SpaceReclaimedMB = $totalSizeMB
-                $stats.ItemsCleared      += $recycleBinItems.Count
-                $stats.SpaceReclaimedMB  += $totalSizeMB
+
+                $stats.SitesWithData++
+                $stats.TotalItems       += $recycleBinItems.Count
+                $stats.TotalSizeMB      += $totalSizeMB
+                $stats.ItemsCleared     += $recycleBinItems.Count
+                $stats.SpaceReclaimedMB += $totalSizeMB
 
                 Write-Output "  WOULD CLEAR: $($recycleBinItems.Count) items ($totalSizeMB MB)"
+            } else {
+                Write-Output "  Empty - no second-stage items"
             }
-        } else {
-            Write-Output "  Empty - no second-stage items"
         }
 
         $stats.Processed++

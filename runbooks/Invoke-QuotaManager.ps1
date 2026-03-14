@@ -170,6 +170,7 @@ $stats = @{
     AlertFlagged  = 0
     Errors        = 0
 }
+$flaggedSites = @()
 
 Write-Output "============================================"
 Write-Output "  QUOTA MANAGER WORKER"
@@ -253,6 +254,13 @@ foreach ($siteUrl in $sites) {
             if ($newPercentUsed -ge $AlertThreshold) {
                 $result.AlertFlagged = $true
                 $stats.AlertFlagged++
+                $flaggedSites += @{
+                    Url        = $siteUrl
+                    Title      = $result.SiteTitle
+                    UsageGB    = $usageGB
+                    QuotaGB    = $newQuotaGB
+                    PercentUsed = $newPercentUsed
+                }
                 Write-Output "  ALERT: Still at $newPercentUsed% after increase - requires attention"
             }
         } else {
@@ -280,6 +288,82 @@ foreach ($siteUrl in $sites) {
         } catch {
             Write-Warning "  Failed to write table result: $($_.Exception.Message)"
         }
+    }
+}
+
+# ---------------------------------------------------------------------------
+# Quota capacity alert email
+# ---------------------------------------------------------------------------
+if ($stats.AlertFlagged -gt 0) {
+    try {
+        $sendFrom = Get-AutomationVariable -Name 'SendFromAddress' -ErrorAction SilentlyContinue
+        $notifyTo = Get-AutomationVariable -Name 'NotificationEmail' -ErrorAction SilentlyContinue
+
+        if ($sendFrom -and $notifyTo) {
+            $toAddresses = @($notifyTo -split ',' | ForEach-Object { $_.Trim() } | Where-Object { $_ })
+
+            # Build HTML table rows for flagged sites
+            $siteRows = ($flaggedSites | ForEach-Object {
+                "<tr><td style='padding:6px 12px;border-bottom:1px solid #e5e7eb;'>$($_.Title)</td>" +
+                "<td style='padding:6px 12px;border-bottom:1px solid #e5e7eb;'>$($_.Url)</td>" +
+                "<td style='padding:6px 12px;border-bottom:1px solid #e5e7eb;text-align:right;'>$($_.UsageGB) GB</td>" +
+                "<td style='padding:6px 12px;border-bottom:1px solid #e5e7eb;text-align:right;'>$($_.QuotaGB) GB</td>" +
+                "<td style='padding:6px 12px;border-bottom:1px solid #e5e7eb;text-align:right;font-weight:600;color:#dc2626;'>$($_.PercentUsed)%</td></tr>"
+            }) -join "`n"
+
+            $alertBody = @"
+<html>
+<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color: #1f2937; max-width: 800px; margin: 0 auto; padding: 20px;">
+    <div style="background: linear-gradient(135deg, #7f1d1d 0%, #991b1b 100%); padding: 24px; border-radius: 12px 12px 0 0;">
+        <h1 style="color: #ffffff; margin: 0; font-size: 20px;">Quota Capacity Alert</h1>
+        <p style="color: #fca5a5; margin: 8px 0 0 0; font-size: 14px;">$($stats.AlertFlagged) site(s) at critical capacity - Run $RunId</p>
+    </div>
+    <div style="background-color: #ffffff; padding: 24px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 12px 12px;">
+        <p style="font-size: 14px; color: #64748b; margin-top: 0;">The following sites remain above ${AlertThreshold}% capacity after a ${QuotaIncrementGB} GB quota increase and require manual attention.</p>
+        <table style="width: 100%; font-size: 13px; border-collapse: collapse; margin-top: 16px;">
+            <thead>
+                <tr style="background-color: #f8fafc;">
+                    <th style="padding: 8px 12px; text-align: left; border-bottom: 2px solid #e5e7eb;">Site</th>
+                    <th style="padding: 8px 12px; text-align: left; border-bottom: 2px solid #e5e7eb;">URL</th>
+                    <th style="padding: 8px 12px; text-align: right; border-bottom: 2px solid #e5e7eb;">Usage</th>
+                    <th style="padding: 8px 12px; text-align: right; border-bottom: 2px solid #e5e7eb;">Quota</th>
+                    <th style="padding: 8px 12px; text-align: right; border-bottom: 2px solid #e5e7eb;">Used</th>
+                </tr>
+            </thead>
+            <tbody>
+                $siteRows
+            </tbody>
+        </table>
+    </div>
+</body>
+</html>
+"@
+
+            $graphToken = (Get-AzAccessToken -ResourceUrl "https://graph.microsoft.com").Token
+            $recipients = @($toAddresses | ForEach-Object {
+                @{ emailAddress = @{ address = $_ } }
+            })
+            $mailPayload = @{
+                message = @{
+                    subject      = "[ALERT] Quota capacity: $($stats.AlertFlagged) site(s) at ${AlertThreshold}%+ - $RunId"
+                    body         = @{ contentType = 'HTML'; content = $alertBody }
+                    toRecipients = $recipients
+                }
+                saveToSentItems = $false
+            }
+            $graphHeaders = @{
+                Authorization  = "Bearer $graphToken"
+                'Content-Type' = 'application/json'
+            }
+            Invoke-RestMethod -Uri "https://graph.microsoft.com/v1.0/users/$sendFrom/sendMail" `
+                -Method Post -Headers $graphHeaders `
+                -Body ($mailPayload | ConvertTo-Json -Depth 10 -Compress)
+            Write-Output "[INFO] Quota alert email sent to: $($toAddresses -join ', ')"
+        } else {
+            Write-Output "[INFO] Quota alert skipped: SendFromAddress or NotificationEmail not configured"
+        }
+    } catch {
+        Write-Warning "Failed to send quota alert email: $($_.Exception.Message)"
     }
 }
 

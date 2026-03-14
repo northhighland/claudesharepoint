@@ -40,13 +40,13 @@ var automationVariables = [
   { name: 'MaxMajorVersions', value: '100', description: 'Maximum major versions to keep per file' }
   { name: 'BatchSize', value: '100', description: 'Sites per processing batch' }
   { name: 'WaveSize', value: '30', description: 'Concurrent child runbooks per wave' }
-  { name: 'ExclusionPatterns', value: '*-my.sharepoint.com*,*REDIRECT*', description: 'URL patterns to exclude' }
   { name: 'DisableSchedule', value: 'false', description: 'Emergency stop for scheduled execution' }
   { name: 'QuotaIncrementGB', value: '25', description: 'GB to add when quota exceeds 90%' }
   { name: 'QuotaAlertThreshold', value: '95', description: 'Percentage threshold for quota alerts' }
   { name: 'StalenessThresholdDays', value: '180', description: 'Days of inactivity for staleness scoring' }
   { name: 'TeamsWebhookUrl', value: '', description: 'Teams incoming webhook URL for notifications' }
   { name: 'NotificationEmail', value: '', description: 'Email for weekly summary and critical alerts' }
+  { name: 'SendFromAddress', value: '', description: 'From address for Graph API email notifications (must be a licensed mailbox)' }
   { name: 'KeyVaultName', value: 'kv-csp-${clientCode}', description: 'Key Vault name for SPO credentials' }
   { name: 'StorageAccountName', value: 'stcsp${clientCode}', description: 'Storage account name for Table Storage results' }
   { name: 'AutomationAccountName', value: 'aa-csp-${clientCode}', description: 'Automation account name for child runbook dispatch' }

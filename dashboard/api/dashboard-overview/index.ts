@@ -1,7 +1,11 @@
 import { AzureFunction, Context, HttpRequest } from "@azure/functions";
 import { queryEntities, odata } from "../shared/table-client";
 import { jsonResponse, errorResponse } from "../shared/response";
-import { StaleSiteEntity } from "../shared/types";
+import {
+  StaleSiteEntity,
+  VersionCleanupResultEntity,
+  RecycleBinResultEntity,
+} from "../shared/types";
 import { TableEntity } from "@azure/data-tables";
 
 // Raw Table Storage entity — actual field names from Invoke-Orchestrator
@@ -83,18 +87,48 @@ const handler: AzureFunction = async function (
       // Table may not exist yet
     }
 
-    // Build storage trend from Details.CompletedAt dates
+    // Build storage trend from actual space reclaimed in results tables
     const trendMap = new Map<string, number>();
-    for (const job of recentJobs) {
-      const details = parseDetails(job.Details);
-      if (details.CompletedAt) {
-        const date = details.CompletedAt.substring(0, 10);
-        // No per-job space data at top level; count completions per day
-        trendMap.set(date, (trendMap.get(date) ?? 0) + 1);
+    let totalStorageReclaimedBytes = 0;
+
+    try {
+      const versionResults = await queryEntities<VersionCleanupResultEntity>(
+        "VersionCleanupResults",
+        odata`Timestamp ge datetime'${thirtyDaysAgoISO}'`
+      );
+      for (const result of versionResults) {
+        const mbReclaimed = result.SpaceReclaimedMB ?? 0;
+        const bytes = Math.round(mbReclaimed * 1024 * 1024);
+        totalStorageReclaimedBytes += bytes;
+        if (result.ProcessedAt) {
+          const date = result.ProcessedAt.substring(0, 10);
+          trendMap.set(date, (trendMap.get(date) ?? 0) + mbReclaimed / 1024);
+        }
       }
+    } catch {
+      // Table may not exist yet
     }
+
+    try {
+      const recycleBinResults = await queryEntities<RecycleBinResultEntity>(
+        "RecycleBinResults",
+        odata`Timestamp ge datetime'${thirtyDaysAgoISO}'`
+      );
+      for (const result of recycleBinResults) {
+        const mbReclaimed = result.SpaceReclaimedMB ?? 0;
+        const bytes = Math.round(mbReclaimed * 1024 * 1024);
+        totalStorageReclaimedBytes += bytes;
+        if (result.ProcessedAt) {
+          const date = result.ProcessedAt.substring(0, 10);
+          trendMap.set(date, (trendMap.get(date) ?? 0) + mbReclaimed / 1024);
+        }
+      }
+    } catch {
+      // Table may not exist yet
+    }
+
     const storageTrend = Array.from(trendMap.entries())
-      .map(([date, count]) => ({ date, reclaimedGB: count }))
+      .map(([date, gb]) => ({ date, reclaimedGB: Math.round(gb * 100) / 100 }))
       .sort((a, b) => a.date.localeCompare(b.date));
 
     // Transform jobs to frontend format
@@ -126,11 +160,15 @@ const handler: AzureFunction = async function (
           errorMessage: undefined,
           triggeredBy: "Automation",
           isDryRun: job.DryRun ?? details.DryRun ?? false,
+          totalWaves: job.TotalWaves ?? undefined,
+          completedWaves: job.CompletedWaves ?? undefined,
+          jobsSucceeded: details.JobsSucceeded ?? undefined,
+          jobsFailed: details.JobsFailed ?? undefined,
         };
       });
 
     const response = {
-      totalStorageReclaimedBytes: 0,
+      totalStorageReclaimedBytes,
       storageReclaimedTrendPercent: 0,
       activeJobs,
       activeJobsTrendPercent: 0,

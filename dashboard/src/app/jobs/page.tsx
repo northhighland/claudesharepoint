@@ -1,18 +1,19 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { Play, ChevronDown } from "lucide-react";
 import { usePolling } from "@/hooks/use-polling";
 import { fetchJobs, triggerJob } from "@/lib/api";
 import { JobTable } from "@/components/jobs/job-table";
 import { JobDetail } from "@/components/jobs/job-detail";
 import type { JobRun, JobType, JobStatus, JobFilters } from "@/lib/types";
+import { JOB_TYPE_DISPLAY_NAMES } from "@/lib/types";
 
 const JOB_TYPES: JobType[] = [
   "VersionCleanup",
   "QuotaManager",
-  "StaleSiteAnalysis",
-  "RecycleBinCleanup",
+  "StaleSiteDetector",
+  "RecycleBinCleaner",
 ];
 
 const JOB_STATUSES: JobStatus[] = [
@@ -29,8 +30,15 @@ export default function JobsPage(): React.ReactElement {
   const [triggerOpen, setTriggerOpen] = useState(false);
   const [triggering, setTriggering] = useState(false);
 
+  const [pollInterval, setPollInterval] = useState(15000);
   const fetcher = useCallback(() => fetchJobs(filters), [filters]);
-  const { data: jobs, isLoading, mutate } = usePolling("jobs", fetcher, 15000);
+  const { data: jobs, isLoading, mutate } = usePolling("jobs", fetcher, pollInterval);
+
+  // Dynamic polling: 5s when jobs are running, 15s otherwise
+  useEffect(() => {
+    const hasRunning = (jobs ?? []).some((j) => j.status === "Running");
+    setPollInterval(hasRunning ? 5000 : 15000);
+  }, [jobs]);
 
   const handleTrigger = async (jobType: JobType): Promise<void> => {
     setTriggering(true);
@@ -83,7 +91,7 @@ export default function JobsPage(): React.ReactElement {
                     onClick={() => handleTrigger(type)}
                     className="w-full px-4 py-2 text-left text-sm hover:bg-accent"
                   >
-                    {type}
+                    {JOB_TYPE_DISPLAY_NAMES[type]}
                   </button>
                 ))}
               </div>
@@ -107,7 +115,7 @@ export default function JobsPage(): React.ReactElement {
           <option value="">All Types</option>
           {JOB_TYPES.map((t) => (
             <option key={t} value={t}>
-              {t}
+              {JOB_TYPE_DISPLAY_NAMES[t]}
             </option>
           ))}
         </select>

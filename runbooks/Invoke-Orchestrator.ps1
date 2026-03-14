@@ -71,9 +71,8 @@ if (-not $moduleLoaded) {
 # Inline fallback: Get-SpaceAgentConfig
 if (-not $moduleLoaded) {
     function Get-SpaceAgentConfig {
-        $config = @{ DisableSchedule = $false; ExclusionPatterns = @(); ExpireAfterDays = 90; MaxMajorVersions = 100; BatchSize = 50 }
+        $config = @{ DisableSchedule = $false; ExpireAfterDays = 90; MaxMajorVersions = 100; BatchSize = 50 }
         try { $d = Get-AutomationVariable -Name 'DisableSchedule' -EA SilentlyContinue; if ($null -ne $d) { $config.DisableSchedule = ($d -eq $true -or $d -eq 'true' -or $d -eq 'True') } } catch {}
-        try { $p = Get-AutomationVariable -Name 'ExclusionPatterns' -EA SilentlyContinue; if ($p) { $config.ExclusionPatterns = @($p -split ',' | ForEach-Object { $_.Trim() } | Where-Object { $_ }) } } catch {}
         try { $e = Get-AutomationVariable -Name 'ExpireAfterDays' -EA SilentlyContinue; if ($null -ne $e) { $config.ExpireAfterDays = [int]$e } } catch {}
         try { $m = Get-AutomationVariable -Name 'MaxMajorVersions' -EA SilentlyContinue; if ($null -ne $m) { $config.MaxMajorVersions = [int]$m } } catch {}
         try { $b = Get-AutomationVariable -Name 'BatchSize' -EA SilentlyContinue; if ($null -ne $b) { $config.BatchSize = [int]$b } } catch {}
@@ -260,8 +259,6 @@ function Get-AllSites {
         Get all SharePoint sites, filtered by exclusion patterns and batch size
     .PARAMETER AdminUrl
         SharePoint admin center URL
-    .PARAMETER ExclusionPatterns
-        URL patterns to exclude
     .PARAMETER BatchSize
         Maximum number of sites to return (0 = unlimited)
     .OUTPUTS
@@ -273,8 +270,6 @@ function Get-AllSites {
         [Parameter(Mandatory = $true)]
         [string]$AdminUrl,
 
-        [string[]]$ExclusionPatterns = @(),
-
         [int]$BatchSize = 0
     )
 
@@ -284,18 +279,6 @@ function Get-AllSites {
             $_.Url -notlike "*-my.sharepoint.com*"
         } |
         Select-Object Url, Title, StorageUsageCurrent, Template
-
-    # Apply exclusion patterns
-    if ($ExclusionPatterns.Count -gt 0) {
-        $sites = $sites | Where-Object {
-            $url = $_.Url
-            $excluded = $false
-            foreach ($pattern in $ExclusionPatterns) {
-                if ($url -like "*$pattern*") { $excluded = $true; break }
-            }
-            -not $excluded
-        }
-    }
 
     if ($BatchSize -gt 0 -and $BatchSize -lt $sites.Count) {
         $sites = $sites | Select-Object -First $BatchSize
@@ -386,7 +369,26 @@ function Send-Notification {
 "@
 
     try {
-        Send-ReportEmail -FromAddress $fromAddress -ToAddresses $toAddresses -Subject $subject -Body $body
+        # Send email via Microsoft Graph API using managed identity
+        $graphToken = (Get-AzAccessToken -ResourceUrl "https://graph.microsoft.com").Token
+        $recipients = @($toAddresses | ForEach-Object {
+            @{ emailAddress = @{ address = $_ } }
+        })
+        $mailPayload = @{
+            message = @{
+                subject      = $subject
+                body         = @{ contentType = 'HTML'; content = $body }
+                toRecipients = $recipients
+            }
+            saveToSentItems = $false
+        }
+        $graphHeaders = @{
+            Authorization  = "Bearer $graphToken"
+            'Content-Type' = 'application/json'
+        }
+        Invoke-RestMethod -Uri "https://graph.microsoft.com/v1.0/users/$fromAddress/sendMail" `
+            -Method Post -Headers $graphHeaders `
+            -Body ($mailPayload | ConvertTo-Json -Depth 10 -Compress)
         Write-Output "Notification sent to: $($toAddresses -join ', ')"
     }
     catch {
@@ -450,7 +452,6 @@ Write-Output "  KeyVaultName:       $KeyVaultName"
 Write-Output "  StorageAccountName: $StorageAccountName"
 Write-Output "  BatchSize:          $($config.BatchSize)"
 Write-Output "  WaveSize:           $WaveSize"
-Write-Output "  Exclusions:         $($config.ExclusionPatterns.Count) patterns"
 Write-Output ""
 
 #endregion
@@ -463,7 +464,6 @@ Write-Output ""
 Write-Output "Discovering SharePoint sites..."
 
 $sites = Get-AllSites -AdminUrl $spConnection.AdminUrl `
-    -ExclusionPatterns $config.ExclusionPatterns `
     -BatchSize $config.BatchSize
 
 Disconnect-PnPOnline -ErrorAction SilentlyContinue
