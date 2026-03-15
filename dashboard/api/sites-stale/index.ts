@@ -52,16 +52,17 @@ async function handleGet(
     return;
   }
 
-  // Determine the latest RunId
-  const latestRunId = allSites.reduce((latest, site) => {
-    if (!latest || site.RunId > latest) {
-      return site.RunId;
+  // Deduplicate: keep only the latest result per site
+  const siteMap = new Map<string, StaleSiteEntity>();
+  for (const site of allSites) {
+    const key = site.SiteUrl ?? "";
+    if (!key) continue;
+    const existing = siteMap.get(key);
+    if (!existing || (site.RunId ?? "") > (existing.RunId ?? "")) {
+      siteMap.set(key, site);
     }
-    return latest;
-  }, "" as string);
-
-  // Filter to latest run only
-  let results = allSites.filter((site) => site.RunId === latestRunId);
+  }
+  let results = Array.from(siteMap.values());
 
   // Apply category filter if provided
   if (category) {
@@ -120,16 +121,19 @@ async function handlePost(
     return;
   }
 
-  // Find the entity by scanning for the siteUrl in the latest run
+  // Find the entity — deduplicate by SiteUrl, keep latest RunId
   const allSites = await queryEntities<StaleSiteEntity>(TABLE_NAME);
-  const latestRunId = allSites.reduce((latest, site) => {
-    if (!latest || site.RunId > latest) return site.RunId;
-    return latest;
-  }, "" as string);
+  const postSiteMap = new Map<string, StaleSiteEntity>();
+  for (const site of allSites) {
+    const key = site.SiteUrl ?? "";
+    if (!key) continue;
+    const existing = postSiteMap.get(key);
+    if (!existing || (site.RunId ?? "") > (existing.RunId ?? "")) {
+      postSiteMap.set(key, site);
+    }
+  }
 
-  const target = allSites.find(
-    (site) => site.SiteUrl === siteUrl && site.RunId === latestRunId
-  );
+  const target = postSiteMap.get(siteUrl);
 
   if (!target) {
     context.res = errorResponse(

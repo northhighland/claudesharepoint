@@ -128,6 +128,13 @@ export interface DashboardOverview {
   totalSitesProcessed: number;
   storageTrend: StorageTrendPoint[];
   recentJobs: JobRun[];
+  tenantHealthScore?: number;
+  quotaHealthPercent?: number;
+  stalenessHealthPercent?: number;
+  jobSuccessPercent?: number;
+  criticalQuotaSites?: number;
+  staleSitesNeedingAction?: number;
+  failedJobsLast24h?: number;
 }
 
 export interface StorageTrendPoint {

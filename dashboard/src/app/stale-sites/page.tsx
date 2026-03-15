@@ -1,7 +1,16 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
-import { Play } from "lucide-react";
+import { useState, useCallback, useEffect, useMemo } from "react";
+import {
+  Play,
+  CheckCircle2,
+  Activity,
+  Moon,
+  Archive,
+  Trash2,
+  AlertTriangle,
+  ShieldCheck,
+} from "lucide-react";
 import { usePolling } from "@/hooks/use-polling";
 import { fetchStaleSites, fetchJobs } from "@/lib/api";
 import { formatBytes, formatDate, getStatusColor, cn } from "@/lib/utils";
@@ -17,7 +26,75 @@ import type { StaleSiteRecommendation } from "@/lib/types";
 type CategoryFilter = "all" | "Active" | "Low Activity" | "Stale" | "Abandoned";
 type FilterStatus = "all" | "Completed" | "Failed" | "Running";
 
-const CATEGORIES: CategoryFilter[] = ["all", "Active", "Low Activity", "Stale", "Abandoned"];
+/* ------------------------------------------------------------------ */
+/*  Helpers                                                            */
+/* ------------------------------------------------------------------ */
+
+/** Normalize API categories to frontend categories */
+function normalizeCategory(cat: string): StaleSiteRecommendation["category"] {
+  const map: Record<string, StaleSiteRecommendation["category"]> = {
+    Active: "Active",
+    LowActivity: "Low Activity",
+    "Low Activity": "Low Activity",
+    Dormant: "Stale",
+    Stale: "Stale",
+    RecommendArchive: "Stale",
+    RecommendDelete: "Abandoned",
+    Abandoned: "Abandoned",
+  };
+  return map[cat] ?? (cat as StaleSiteRecommendation["category"]);
+}
+
+/** Client-side dedup safety net — keep first occurrence per siteUrl */
+function dedupSites(sites: StaleSiteRecommendation[]): StaleSiteRecommendation[] {
+  const map = new Map<string, StaleSiteRecommendation>();
+  for (const site of sites) {
+    const existing = map.get(site.siteUrl);
+    if (!existing) {
+      map.set(site.siteUrl, site);
+    }
+  }
+  return Array.from(map.values());
+}
+
+/* Category card config */
+const CATEGORY_CONFIG: Record<
+  Exclude<CategoryFilter, "all">,
+  { icon: React.ElementType; bg: string; text: string; border: string; label: string }
+> = {
+  Active: {
+    icon: CheckCircle2,
+    bg: "bg-emerald-500/10",
+    text: "text-emerald-400",
+    border: "border-emerald-500/30",
+    label: "Active",
+  },
+  "Low Activity": {
+    icon: Activity,
+    bg: "bg-blue-500/10",
+    text: "text-blue-400",
+    border: "border-blue-500/30",
+    label: "Low Activity",
+  },
+  Stale: {
+    icon: Moon,
+    bg: "bg-amber-500/10",
+    text: "text-amber-400",
+    border: "border-amber-500/30",
+    label: "Dormant",
+  },
+  Abandoned: {
+    icon: Trash2,
+    bg: "bg-red-500/10",
+    text: "text-red-400",
+    border: "border-red-500/30",
+    label: "Abandoned",
+  },
+};
+
+/* ------------------------------------------------------------------ */
+/*  Page Component                                                     */
+/* ------------------------------------------------------------------ */
 
 export default function StaleSitesPage(): React.ReactElement {
   const [category, setCategory] = useState<CategoryFilter>("all");
@@ -25,7 +102,7 @@ export default function StaleSitesPage(): React.ReactElement {
   const [selectedJob, setSelectedJob] = useState<JobRun | null>(null);
   const [triggerOpen, setTriggerOpen] = useState(false);
 
-  const { data: sites, isLoading, mutate: mutateSites } = usePolling("stale-sites", fetchStaleSites, 60000);
+  const { data: rawSites, isLoading, mutate: mutateSites } = usePolling("stale-sites", fetchStaleSites, 60000);
 
   const [pollInterval, setPollInterval] = useState(60000);
   const jobFetcher = useCallback(
@@ -40,17 +117,57 @@ export default function StaleSitesPage(): React.ReactElement {
     setPollInterval(hasRunning ? 5000 : 60000);
   }, [jobs]);
 
-  const allSites = sites ?? [];
+  // Normalize categories from API and dedup
+  const allSites = useMemo(() => {
+    const raw = rawSites ?? [];
+    const normalized = raw.map((s) => ({
+      ...s,
+      category: normalizeCategory(s.category),
+    }));
+    return dedupSites(normalized);
+  }, [rawSites]);
+
   const filtered =
     category === "all" ? allSites : allSites.filter((s) => s.category === category);
 
-  const counts: Record<CategoryFilter, number> = {
-    all: allSites.length,
-    Active: allSites.filter((s) => s.category === "Active").length,
-    "Low Activity": allSites.filter((s) => s.category === "Low Activity").length,
-    Stale: allSites.filter((s) => s.category === "Stale").length,
-    Abandoned: allSites.filter((s) => s.category === "Abandoned").length,
-  };
+  // Category counts & storage
+  const categoryStats = useMemo(() => {
+    const stats: Record<Exclude<CategoryFilter, "all">, { count: number; bytes: number }> = {
+      Active: { count: 0, bytes: 0 },
+      "Low Activity": { count: 0, bytes: 0 },
+      Stale: { count: 0, bytes: 0 },
+      Abandoned: { count: 0, bytes: 0 },
+    };
+    for (const s of allSites) {
+      const key = s.category as Exclude<CategoryFilter, "all">;
+      if (stats[key]) {
+        stats[key].count++;
+        stats[key].bytes += s.storageUsedBytes;
+      }
+    }
+    return stats;
+  }, [allSites]);
+
+  // Storage at risk: Stale + Abandoned
+  const staleSites = useMemo(() => {
+    return allSites.filter((s) => s.category === "Stale" || s.category === "Abandoned");
+  }, [allSites]);
+
+  const storageAtRiskBytes = categoryStats.Stale.bytes + categoryStats.Abandoned.bytes;
+
+  // Action progress
+  const actionCounts = useMemo(() => {
+    const counts = { Keep: 0, Archive: 0, Delete: 0, Pending: 0 };
+    for (const s of allSites) {
+      if (s.adminAction === "Keep") counts.Keep++;
+      else if (s.adminAction === "Archive") counts.Archive++;
+      else if (s.adminAction === "Delete") counts.Delete++;
+      else counts.Pending++;
+    }
+    return counts;
+  }, [allSites]);
+
+  const totalActioned = actionCounts.Keep + actionCounts.Archive + actionCounts.Delete;
 
   const filteredJobs = (jobs ?? []).filter(
     (j) => statusFilter === "all" || j.status === statusFilter
@@ -62,11 +179,12 @@ export default function StaleSitesPage(): React.ReactElement {
 
   return (
     <div className="space-y-6">
+      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="font-display text-2xl font-bold">Stale Sites</h1>
           <p className="text-sm text-muted-foreground">
-            These sites cost money but nobody uses them
+            Identify and manage inactive SharePoint sites consuming storage
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -96,27 +214,152 @@ export default function StaleSitesPage(): React.ReactElement {
       {/* Active job banner */}
       <ActiveJobBanner jobs={jobs ?? []} />
 
-      {/* Category filter */}
-      <div className="flex flex-wrap gap-2">
-        {CATEGORIES.map((cat) => (
-          <button
-            key={cat}
-            onClick={() => setCategory(cat)}
-            className={cn(
-              "rounded-lg px-3 py-1.5 text-sm font-medium transition-colors",
-              category === cat
-                ? "bg-primary/15 text-primary"
-                : "bg-muted/50 text-muted-foreground hover:text-foreground"
-            )}
-          >
-            {cat === "all" ? "All" : cat}
-            <span className="ml-1.5 text-xs opacity-70">({counts[cat]})</span>
-          </button>
-        ))}
+      {/* Storage at Risk Banner */}
+      {staleSites.length > 0 && (
+        <div className="glass-card rounded-xl p-5 animate-fade-in-up border border-amber-500/20 bg-gradient-to-r from-amber-500/5 to-red-500/5">
+          <div className="flex items-start gap-4">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-amber-500/15">
+              <AlertTriangle className="h-5 w-5 text-amber-400" />
+            </div>
+            <div className="flex-1">
+              <div className="flex items-baseline gap-2">
+                <span className="font-mono text-2xl font-bold text-amber-400">
+                  {formatBytes(storageAtRiskBytes)}
+                </span>
+                <span className="text-sm text-muted-foreground">
+                  at risk across {staleSites.length} stale site{staleSites.length !== 1 ? "s" : ""}
+                </span>
+              </div>
+              <div className="mt-1.5 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
+                {categoryStats.Stale.count > 0 && (
+                  <span>
+                    <span className="font-medium text-amber-400">{categoryStats.Stale.count}</span> site{categoryStats.Stale.count !== 1 ? "s" : ""} dormant ({formatBytes(categoryStats.Stale.bytes)})
+                  </span>
+                )}
+                {categoryStats.Abandoned.count > 0 && (
+                  <span>
+                    <span className="font-medium text-red-400">{categoryStats.Abandoned.count}</span> site{categoryStats.Abandoned.count !== 1 ? "s" : ""} recommended for deletion ({formatBytes(categoryStats.Abandoned.bytes)})
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Risk Overview Cards (clickable category filters) */}
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        {(Object.keys(CATEGORY_CONFIG) as Exclude<CategoryFilter, "all">[]).map((cat, i) => {
+          const config = CATEGORY_CONFIG[cat];
+          const stats = categoryStats[cat];
+          const Icon = config.icon;
+          const isSelected = category === cat;
+
+          return (
+            <button
+              key={cat}
+              onClick={() => setCategory(isSelected ? "all" : cat)}
+              className={cn(
+                "glass-card rounded-xl p-4 text-left transition-all hover:scale-[1.02]",
+                `animate-fade-in-up`,
+                isSelected && `border ${config.border} ring-1 ring-inset ring-white/5`
+              )}
+              style={{ animationDelay: `${i * 75}ms` }}
+            >
+              <div className="flex items-center justify-between">
+                <div className={cn("flex h-8 w-8 items-center justify-center rounded-lg", config.bg)}>
+                  <Icon className={cn("h-4 w-4", config.text)} />
+                </div>
+                {isSelected && (
+                  <span className={cn("text-[10px] uppercase tracking-wider font-medium", config.text)}>
+                    Filtered
+                  </span>
+                )}
+              </div>
+              <p className="mt-3 font-mono text-2xl font-bold">
+                {isLoading ? "--" : stats.count}
+              </p>
+              <div className="flex items-center justify-between">
+                <p className="text-xs text-muted-foreground">{config.label}</p>
+                <p className="font-mono text-xs text-muted-foreground">
+                  {isLoading ? "--" : formatBytes(stats.bytes)}
+                </p>
+              </div>
+            </button>
+          );
+        })}
       </div>
 
+      {/* Action Progress Tracker */}
+      {allSites.length > 0 && (
+        <div className="glass-card rounded-xl p-5 animate-fade-in-up">
+          <div className="flex items-center gap-3 mb-3">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/15">
+              <ShieldCheck className="h-4 w-4 text-primary" />
+            </div>
+            <div>
+              <h4 className="text-sm font-medium">Admin Action Progress</h4>
+              <p className="text-xs text-muted-foreground">
+                {totalActioned} of {allSites.length} sites actioned
+              </p>
+            </div>
+          </div>
+
+          {/* Progress bar */}
+          <div className="h-3 w-full rounded-full bg-muted/30 overflow-hidden flex">
+            {actionCounts.Keep > 0 && (
+              <div
+                className="h-full bg-emerald-500/70 transition-all"
+                style={{ width: `${(actionCounts.Keep / allSites.length) * 100}%` }}
+                title={`Keep: ${actionCounts.Keep}`}
+              />
+            )}
+            {actionCounts.Archive > 0 && (
+              <div
+                className="h-full bg-amber-500/70 transition-all"
+                style={{ width: `${(actionCounts.Archive / allSites.length) * 100}%` }}
+                title={`Archive: ${actionCounts.Archive}`}
+              />
+            )}
+            {actionCounts.Delete > 0 && (
+              <div
+                className="h-full bg-red-500/70 transition-all"
+                style={{ width: `${(actionCounts.Delete / allSites.length) * 100}%` }}
+                title={`Delete: ${actionCounts.Delete}`}
+              />
+            )}
+          </div>
+
+          {/* Breakdown */}
+          <div className="mt-3 grid grid-cols-4 gap-4 text-center">
+            <div>
+              <span className="inline-block h-2 w-2 rounded-full bg-emerald-500/70 mr-1" />
+              <span className="text-xs text-muted-foreground">Keep</span>
+              <p className="font-mono text-sm font-bold">{actionCounts.Keep}</p>
+            </div>
+            <div>
+              <span className="inline-block h-2 w-2 rounded-full bg-amber-500/70 mr-1" />
+              <span className="text-xs text-muted-foreground">Archive</span>
+              <p className="font-mono text-sm font-bold">{actionCounts.Archive}</p>
+            </div>
+            <div>
+              <span className="inline-block h-2 w-2 rounded-full bg-red-500/70 mr-1" />
+              <span className="text-xs text-muted-foreground">Delete</span>
+              <p className="font-mono text-sm font-bold">{actionCounts.Delete}</p>
+            </div>
+            <div>
+              <span className="inline-block h-2 w-2 rounded-full bg-muted mr-1" />
+              <span className="text-xs text-muted-foreground">Pending</span>
+              <p className="font-mono text-sm font-bold">{actionCounts.Pending}</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Impact Summary with cost estimates */}
       <ImpactSummary sites={allSites} />
 
+      {/* Site Table */}
       <SiteTable
         sites={filtered}
         isLoading={isLoading}

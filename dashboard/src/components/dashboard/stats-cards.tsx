@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { HardDrive, Globe, DollarSign, Archive } from "lucide-react";
+import { HardDrive, Globe, DollarSign, Clock } from "lucide-react";
 import { formatBytes, formatNumber } from "@/lib/utils";
 import type { DashboardOverview } from "@/lib/types";
 
@@ -18,34 +18,41 @@ const ANIMATION_CLASSES = [
 ];
 
 export function StatsCards({ overview, isLoading }: StatsCardsProps): React.ReactElement {
+  const hoursSaved = overview?.adminHoursSaved ?? 0;
+  const personDays = Math.ceil(hoursSaved / 8);
+
   const cards = [
     {
       label: "Storage Reclaimed",
       value: overview ? formatBytes(overview.totalStorageReclaimedBytes) : "0 B",
+      subtitle: undefined as string | undefined,
       icon: <HardDrive className="h-5 w-5" />,
       color: "bg-primary/10 text-primary",
       href: "/versions",
     },
     {
-      label: "Sites Processed",
-      value: (overview?.totalSitesProcessed ?? 0).toLocaleString(),
-      icon: <Globe className="h-5 w-5" />,
+      label: "Admin Hours Saved",
+      value: hoursSaved.toLocaleString(),
+      subtitle: `${personDays} person-day${personDays !== 1 ? "s" : ""}`,
+      icon: <Clock className="h-5 w-5" />,
       color: "bg-sky-500/10 text-sky-400",
-      href: "/versions",
+      href: "/jobs",
     },
     {
       label: "Cost Avoidance",
       value: `$${formatNumber(overview?.costAvoidanceDollars ?? 0)}`,
+      subtitle: undefined as string | undefined,
       icon: <DollarSign className="h-5 w-5" />,
       color: "bg-emerald-500/10 text-emerald-400",
       href: "/quota",
     },
     {
-      label: "Stale Sites Found",
-      value: (overview?.staleSitesFound ?? 0).toLocaleString(),
-      icon: <Archive className="h-5 w-5" />,
-      color: "bg-amber-500/10 text-amber-400",
-      href: "/stale-sites",
+      label: "Sites Processed",
+      value: (overview?.totalSitesProcessed ?? 0).toLocaleString(),
+      subtitle: undefined as string | undefined,
+      icon: <Globe className="h-5 w-5" />,
+      color: "bg-sky-500/10 text-sky-400",
+      href: "/versions",
     },
   ];
 
@@ -67,7 +74,12 @@ export function StatsCards({ overview, isLoading }: StatsCardsProps): React.Reac
             {isLoading ? (
               <div className="h-8 w-24 animate-pulse rounded bg-muted" />
             ) : (
-              <p className="font-mono text-2xl font-bold">{card.value}</p>
+              <>
+                <p className="font-mono text-2xl font-bold">{card.value}</p>
+                {card.subtitle && (
+                  <p className="mt-0.5 text-xs text-muted-foreground">{card.subtitle}</p>
+                )}
+              </>
             )}
           </div>
         </Link>
