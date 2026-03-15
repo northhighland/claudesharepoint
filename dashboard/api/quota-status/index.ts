@@ -37,18 +37,17 @@ const handler: AzureFunction = async function (
       return;
     }
 
-    // Determine the latest RunId
-    const latestRunId = allEntries.reduce((latest, entry) => {
-      if (!latest || entry.RunId > latest) {
-        return entry.RunId;
+    // Deduplicate: keep only the latest result per site (by RunId, which is date-sortable)
+    const siteMap = new Map<string, QuotaStatusEntity>();
+    for (const entry of allEntries) {
+      const key = entry.SiteUrl ?? "";
+      if (!key) continue;
+      const existing = siteMap.get(key);
+      if (!existing || (entry.RunId ?? "") > (existing.RunId ?? "")) {
+        siteMap.set(key, entry);
       }
-      return latest;
-    }, "" as string);
-
-    // Filter to latest run only
-    const results = allEntries.filter(
-      (entry) => entry.RunId === latestRunId
-    );
+    }
+    const results = Array.from(siteMap.values());
 
     // Sort based on query param
     if (sortField === "storageUsedGB") {

@@ -5,6 +5,7 @@ import {
   StaleSiteEntity,
   VersionCleanupResultEntity,
   RecycleBinResultEntity,
+  QuotaStatusEntity,
 } from "../shared/types";
 import { TableEntity } from "@azure/data-tables";
 
@@ -99,6 +100,70 @@ const handler: AzureFunction = async function (
     } catch {
       // Table may not exist yet
     }
+
+    // Calculate Tenant Health Score (0-100 composite)
+    let quotaHealthPercent = 100;
+    let stalenessHealthPercent = 100;
+
+    // Quota health: % of sites below 85% usage (deduplicated)
+    try {
+      const quotaEntries = await queryEntities<QuotaStatusEntity>("QuotaStatus");
+      const quotaSiteMap = new Map<string, QuotaStatusEntity>();
+      for (const entry of quotaEntries) {
+        const key = entry.SiteUrl ?? "";
+        if (!key) continue;
+        const existing = quotaSiteMap.get(key);
+        if (!existing || (entry.RunId ?? "") > (existing.RunId ?? "")) {
+          quotaSiteMap.set(key, entry);
+        }
+      }
+      const uniqueQuotaSites = Array.from(quotaSiteMap.values());
+      if (uniqueQuotaSites.length > 0) {
+        const healthySites = uniqueQuotaSites.filter(s => (s.PercentUsed ?? 0) < 85).length;
+        quotaHealthPercent = Math.round((healthySites / uniqueQuotaSites.length) * 100);
+      }
+    } catch {
+      // Table may not exist yet
+    }
+
+    // Staleness health: % of Active/LowActivity sites (deduplicated)
+    try {
+      const allStale = await queryEntities<StaleSiteEntity>("StaleSiteRecommendations");
+      const staleSiteMap = new Map<string, StaleSiteEntity>();
+      for (const site of allStale) {
+        const key = site.SiteUrl ?? "";
+        if (!key) continue;
+        const existing = staleSiteMap.get(key);
+        if (!existing || (site.RunId ?? "") > (existing.RunId ?? "")) {
+          staleSiteMap.set(key, site);
+        }
+      }
+      const uniqueStaleSites = Array.from(staleSiteMap.values());
+      if (uniqueStaleSites.length > 0) {
+        const activeSites = uniqueStaleSites.filter(s =>
+          s.Category === "Active" || s.Category === "LowActivity"
+        ).length;
+        stalenessHealthPercent = Math.round((activeSites / uniqueStaleSites.length) * 100);
+        staleSitesCount = uniqueStaleSites.filter(s => (s.StalenessScore ?? 0) > 50).length;
+      }
+    } catch {
+      // Table may not exist yet
+    }
+
+    // Job success rate
+    const jobSuccessPercent = completedJobs.length > 0
+      ? Math.round((completedJobs.filter(j => {
+          const d = parseDetails(j.Details);
+          return (d.JobsFailed ?? 0) === 0;
+        }).length / completedJobs.length) * 100)
+      : 100;
+
+    // Weighted composite: quota 40%, staleness 40%, job success 20%
+    const tenantHealthScore = Math.round(
+      quotaHealthPercent * 0.4 +
+      stalenessHealthPercent * 0.4 +
+      jobSuccessPercent * 0.2
+    );
 
     // Calculate totalSitesProcessed from completed non-DryRun jobs
     let totalSitesProcessed = 0;
@@ -206,6 +271,10 @@ const handler: AzureFunction = async function (
       totalSitesProcessed,
       adminHoursSaved,
       costAvoidanceDollars,
+      tenantHealthScore,
+      quotaHealthPercent,
+      stalenessHealthPercent,
+      jobSuccessPercent,
     };
 
     context.res = jsonResponse(response);
