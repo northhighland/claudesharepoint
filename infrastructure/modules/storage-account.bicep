@@ -4,6 +4,9 @@ param clientCode string
 @description('Azure region for deployment')
 param location string
 
+@description('Log Analytics workspace ID for diagnostics')
+param logAnalyticsWorkspaceId string = ''
+
 @description('Resource tags')
 param tags object = {}
 
@@ -24,13 +27,11 @@ resource storageAccount 'Microsoft.Storage/storageAccounts@2023-05-01' = {
     minimumTlsVersion: 'TLS1_2'
     allowBlobPublicAccess: false
     allowSharedKeyAccess: false
+    publicNetworkAccess: 'Enabled' // Required for SWA managed API and Function App to reach storage; locked down by networkAcls
     networkAcls: {
-      defaultAction: 'Allow'
+      defaultAction: 'Deny'
       bypass: 'AzureServices'
-      ipRules: [
-        { value: '4.59.15.66', action: 'Allow' }
-        { value: '8.31.229.4', action: 'Allow' }
-      ]
+      ipRules: []
     }
   }
 }
@@ -79,6 +80,86 @@ resource stateContainer 'Microsoft.Storage/storageAccounts/blobServices/containe
   name: 'spaceagent-state'
   properties: {
     publicAccess: 'None'
+  }
+}
+
+// Queue service (required for Functions runtime)
+resource queueService 'Microsoft.Storage/storageAccounts/queueServices@2023-05-01' = {
+  parent: storageAccount
+  name: 'default'
+}
+
+// Diagnostic settings for blob service
+resource blobDiagnostics 'Microsoft.Insights/diagnosticSettings@2021-05-01-preview' = if (!empty(logAnalyticsWorkspaceId)) {
+  name: '${storageAccountName}-blob-diag'
+  scope: blobService
+  properties: {
+    workspaceId: logAnalyticsWorkspaceId
+    logs: [
+      { categoryGroup: 'allLogs', enabled: true }
+    ]
+    metrics: [
+      { category: 'Transaction', enabled: true }
+    ]
+  }
+}
+
+// Diagnostic settings for table service
+resource tableDiagnostics 'Microsoft.Insights/diagnosticSettings@2021-05-01-preview' = if (!empty(logAnalyticsWorkspaceId)) {
+  name: '${storageAccountName}-table-diag'
+  scope: tableService
+  properties: {
+    workspaceId: logAnalyticsWorkspaceId
+    logs: [
+      { categoryGroup: 'allLogs', enabled: true }
+    ]
+    metrics: [
+      { category: 'Transaction', enabled: true }
+    ]
+  }
+}
+
+// Diagnostic settings for queue service
+resource queueDiagnostics 'Microsoft.Insights/diagnosticSettings@2021-05-01-preview' = if (!empty(logAnalyticsWorkspaceId)) {
+  name: '${storageAccountName}-queue-diag'
+  scope: queueService
+  properties: {
+    workspaceId: logAnalyticsWorkspaceId
+    logs: [
+      { categoryGroup: 'allLogs', enabled: true }
+    ]
+    metrics: [
+      { category: 'Transaction', enabled: true }
+    ]
+  }
+}
+
+// Microsoft Defender for Storage
+resource defenderForStorage 'Microsoft.Security/defenderForStorageSettings@2022-12-01-preview' = {
+  name: 'current'
+  scope: storageAccount
+  properties: {
+    isEnabled: true
+    malwareScanning: {
+      onUpload: {
+        isEnabled: true
+        capGBPerMonth: 5000
+      }
+    }
+    sensitiveDataDiscovery: {
+      isEnabled: true
+    }
+    overrideSubscriptionLevelSettings: true
+  }
+}
+
+// Resource lock — prevent accidental deletion
+resource storageAccountLock 'Microsoft.Authorization/locks@2020-05-01' = {
+  name: '${storageAccountName}-lock'
+  scope: storageAccount
+  properties: {
+    level: 'CanNotDelete'
+    notes: 'Prevent accidental deletion of storage account containing job results and reports'
   }
 }
 

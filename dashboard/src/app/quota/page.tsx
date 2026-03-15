@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback } from "react";
 import { Play } from "lucide-react";
 import { usePolling } from "@/hooks/use-polling";
 import { fetchQuotaStatus, fetchJobs } from "@/lib/api";
@@ -42,18 +42,16 @@ export default function QuotaPage(): React.ReactElement {
   const { data, isLoading } = usePolling("quota", () => fetchQuotaStatus(), 60000);
   const lastUpdated = data ? new Date().toISOString() : undefined;
 
-  const [pollInterval, setPollInterval] = useState(60000);
   const jobFetcher = useCallback(
     () => fetchJobs({ jobType: "QuotaManager" }),
     []
   );
-  const { data: jobs, isLoading: jobsLoading, mutate } = usePolling("quota-jobs", jobFetcher, pollInterval);
-
   // Dynamic polling: 5s when jobs are running, 60s otherwise
-  useEffect(() => {
-    const hasRunning = (jobs ?? []).some((j) => j.status === "Running");
-    setPollInterval(hasRunning ? 5000 : 60000);
-  }, [jobs]);
+  const { data: jobs, isLoading: jobsLoading, mutate } = usePolling(
+    "quota-jobs",
+    jobFetcher,
+    (data) => (data ?? []).some((j) => j.status === "Running") ? 5000 : 60000
+  );
 
   const filteredJobs = (jobs ?? []).filter(
     (j) => statusFilter === "all" || j.status === statusFilter

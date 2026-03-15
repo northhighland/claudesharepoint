@@ -13,6 +13,9 @@ param automationAccountName string = 'aa-csp-${clientCode}'
 @description('Comma-separated list of admin email addresses for dashboard RBAC')
 param adminUsers string = ''
 
+@description('Log Analytics workspace ID for diagnostics')
+param logAnalyticsWorkspaceId string = ''
+
 @description('Resource tags')
 param tags object = {}
 
@@ -93,6 +96,21 @@ resource functionApp 'Microsoft.Web/sites@2023-12-01' = {
         }
       ]
     }
+  }
+}
+
+// Diagnostic settings for Function App
+resource functionAppDiagnostics 'Microsoft.Insights/diagnosticSettings@2021-05-01-preview' = if (!empty(logAnalyticsWorkspaceId)) {
+  name: '${functionAppName}-diag'
+  scope: functionApp
+  properties: {
+    workspaceId: logAnalyticsWorkspaceId
+    logs: [
+      { category: 'FunctionAppLogs', enabled: true }
+    ]
+    metrics: [
+      { category: 'AllMetrics', enabled: true }
+    ]
   }
 }
 

@@ -23,6 +23,8 @@ resource automationAccount 'Microsoft.Automation/automationAccounts@2023-11-01' 
     sku: {
       name: 'Basic'
     }
+    // Azure Automation requires publicNetworkAccess for the management plane (child runbook dispatch, schedule triggers).
+    // Cannot be disabled without Private Link, which is not cost-justified for this workload.
     publicNetworkAccess: true
   }
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect, useMemo } from "react";
+import { useState, useCallback, useMemo } from "react";
 import {
   Play,
   CheckCircle2,
@@ -109,18 +109,16 @@ export default function StaleSitesPage(): React.ReactElement {
   const { data: rawSites, isLoading, mutate: mutateSites } = usePolling("stale-sites", fetchStaleSites, 60000);
   const lastUpdated = rawSites ? new Date().toISOString() : undefined;
 
-  const [pollInterval, setPollInterval] = useState(60000);
   const jobFetcher = useCallback(
     () => fetchJobs({ jobType: "StaleSiteDetector" }),
     []
   );
-  const { data: jobs, isLoading: jobsLoading, mutate: mutateJobs } = usePolling("stale-jobs", jobFetcher, pollInterval);
-
   // Dynamic polling: 5s when jobs are running, 60s otherwise
-  useEffect(() => {
-    const hasRunning = (jobs ?? []).some((j) => j.status === "Running");
-    setPollInterval(hasRunning ? 5000 : 60000);
-  }, [jobs]);
+  const { data: jobs, isLoading: jobsLoading, mutate: mutateJobs } = usePolling(
+    "stale-jobs",
+    jobFetcher,
+    (data) => (data ?? []).some((j) => j.status === "Running") ? 5000 : 60000
+  );
 
   // Normalize categories from API and dedup
   const allSites = useMemo(() => {

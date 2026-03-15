@@ -12,7 +12,7 @@ interface UsePollingResult<T> {
 export function usePolling<T>(
   key: string,
   fetcher: () => Promise<T>,
-  intervalMs = 30000
+  intervalMs: number | ((data: T | undefined) => number) = 30000
 ): UsePollingResult<T> {
   const { data, error, isLoading, mutate } = useSWR<T, Error>(key, fetcher, {
     refreshInterval: intervalMs,

@@ -1,6 +1,7 @@
 "use client";
 
 import { RefreshCw } from "lucide-react";
+import { useNow } from "@/hooks/use-now";
 
 interface DataFreshnessProps {
   lastUpdated?: string; // ISO date string
@@ -8,13 +9,13 @@ interface DataFreshnessProps {
 }
 
 export function DataFreshness({ lastUpdated, pollInterval }: DataFreshnessProps): React.ReactElement {
+  const now = useNow(10000);
+
   if (!lastUpdated) return <></>;
 
   const date = new Date(lastUpdated);
   if (isNaN(date.getTime())) return <></>;
 
-  // Show relative time
-  const now = Date.now();
   const diffMs = now - date.getTime();
   const diffSec = Math.floor(diffMs / 1000);
   const diffMin = Math.floor(diffSec / 60);

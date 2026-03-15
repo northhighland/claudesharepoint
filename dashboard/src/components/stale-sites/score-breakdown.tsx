@@ -2,17 +2,19 @@
 
 import type { StaleSiteRecommendation } from "@/lib/types";
 import { formatBytes, formatDate } from "@/lib/utils";
+import { useNow } from "@/hooks/use-now";
 
 interface ScoreBreakdownProps {
   site: StaleSiteRecommendation;
 }
 
 export function ScoreBreakdown({ site }: ScoreBreakdownProps): React.ReactElement {
+  const now = useNow(60000);
   const daysSinceActivity = Math.floor(
-    (Date.now() - new Date(site.lastActivityDate).getTime()) / (1000 * 60 * 60 * 24)
+    (now - new Date(site.lastActivityDate).getTime()) / (1000 * 60 * 60 * 24)
   );
   const daysSinceModified = Math.floor(
-    (Date.now() - new Date(site.lastContentModified).getTime()) / (1000 * 60 * 60 * 24)
+    (now - new Date(site.lastContentModified).getTime()) / (1000 * 60 * 60 * 24)
   );
 
   type Severity = "high" | "medium" | "low";

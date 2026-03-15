@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { Loader2 } from "lucide-react";
 import { cn, formatDate, formatDuration, getStatusColor } from "@/lib/utils";
+import { useNow } from "@/hooks/use-now";
 import type { JobRun } from "@/lib/types";
 import { JOB_TYPE_DISPLAY_NAMES } from "@/lib/types";
 
@@ -11,6 +12,7 @@ interface ActiveJobBannerProps {
 }
 
 export function ActiveJobBanner({ jobs }: ActiveJobBannerProps): React.ReactElement | null {
+  const now = useNow(5000);
   const runningJobs = jobs.filter((j) => j.status === "Running");
 
   if (runningJobs.length === 0) return null;
@@ -22,7 +24,7 @@ export function ActiveJobBanner({ jobs }: ActiveJobBannerProps): React.ReactElem
           job.totalSites > 0
             ? Math.round((job.processedSites / job.totalSites) * 100)
             : 0;
-        const elapsed = Date.now() - new Date(job.startedAt).getTime();
+        const elapsed = now - new Date(job.startedAt).getTime();
 
         return (
           <div
