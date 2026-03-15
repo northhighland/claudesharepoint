@@ -16,6 +16,11 @@ const handler = async function (context, req) {
     try {
         // Support ?range=30d|90d|all (default: all)
         const range = req.query.range ?? "all";
+        const VALID_RANGES = ["30d", "90d", "all"];
+        if (!VALID_RANGES.includes(range)) {
+            context.res = (0, response_1.errorResponse)(`Invalid range. Must be one of: ${VALID_RANGES.join(", ")}`, 400);
+            return;
+        }
         let dateFilter;
         if (range === "30d" || range === "90d") {
             const days = range === "30d" ? 30 : 90;

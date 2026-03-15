@@ -34,6 +34,7 @@ if (-not $LiveRun.IsPresent) {
 
 $ErrorActionPreference = 'Stop'
 $startTime = Get-Date
+$maxRuntimeMinutes = 150  # 2.5 hours — 30 min buffer before Azure's 3-hour sandbox kill
 $runId = Get-Date -Format 'yyyyMMdd_HHmmss'
 
 Write-Output "======================================"
@@ -184,7 +185,7 @@ function Update-JobRun {
         [Parameter(Mandatory)] [string]$StorageAccountName,
         [Parameter(Mandatory)] [string]$RunId,
         [Parameter(Mandatory)] [string]$JobType,
-        [Parameter(Mandatory)] [ValidateSet('Running', 'Completed', 'Failed')] [string]$Status,
+        [Parameter(Mandatory)] [ValidateSet('Running', 'Completed', 'Failed', 'PartialComplete')] [string]$Status,
         [int]$TotalSites = 0,
         [int]$TotalWaves = 0,
         [int]$CompletedWaves = 0,
@@ -319,7 +320,7 @@ function Send-Notification {
         [string]$RunId,
 
         [Parameter(Mandatory = $true)]
-        [ValidateSet('Completed', 'Failed')]
+        [ValidateSet('Completed', 'Failed', 'PartialComplete')]
         [string]$Status
     )
 
@@ -344,7 +345,7 @@ function Send-Notification {
     $toAddresses = @($notifyEmail -split ',' | ForEach-Object { $_.Trim() } | Where-Object { $_ })
     $fromAddress = $fromEmail
 
-    $statusEmoji = if ($Status -eq 'Completed') { 'SUCCESS' } else { 'FAILURE' }
+    $statusEmoji = switch ($Status) { 'Completed' { 'SUCCESS' }; 'PartialComplete' { 'PARTIAL' }; default { 'FAILURE' } }
     $subject = "[$statusEmoji] Orchestrator: $JobType - $RunId"
 
     $body = @"
@@ -568,10 +569,47 @@ $totalChildJobsSucceeded = 0
 $totalChildJobsFailed = 0
 $totalChildJobsTotal = 0
 $waveErrors = @()
+$waveResults = @()
+$waveIndex = 0
 
 try {
 
 for ($waveIndex = 0; $waveIndex -lt $totalWaves; $waveIndex++) {
+    # --- Runtime limit check ---
+    $elapsedMinutes = ((Get-Date) - $startTime).TotalMinutes
+    if ($elapsedMinutes -ge $maxRuntimeMinutes) {
+        $remainingWaves = $totalWaves - $waveIndex
+        $remainingSites = 0
+        for ($r = $waveIndex; $r -lt $totalWaves; $r++) {
+            $remainingSites += $waves[$r].Count
+        }
+        Write-Warning "Runtime limit reached ($([math]::Round($elapsedMinutes, 1)) min). Deferring $remainingWaves waves ($remainingSites sites)."
+
+        # Update JobRun with PartialComplete status
+        try {
+            Update-JobRun -StorageAccountName $StorageAccountName `
+                -RunId $runId -JobType $JobType -Status 'PartialComplete' `
+                -TotalSites $siteUrls.Count -TotalWaves $totalWaves `
+                -CompletedWaves $waveIndex -Details @{
+                    StartedAt        = $startTime.ToString("o")
+                    CompletedAt      = (Get-Date).ToString("o")
+                    DryRun           = $DryRun.IsPresent
+                    WaveSize         = $WaveSize
+                    JobsSucceeded    = $totalChildJobsSucceeded
+                    JobsFailed       = $totalChildJobsFailed
+                    DurationMinutes  = [math]::Round($elapsedMinutes, 2)
+                    DeferredWaves    = $remainingWaves
+                    DeferredSites    = $remainingSites
+                    StopReason       = "RuntimeLimit"
+                    WaveResults      = ($waveResults | ConvertTo-Json -Depth 3 -Compress)
+                }
+        } catch {
+            Write-Warning "Failed to update JobRun for runtime limit: $($_.Exception.Message)"
+        }
+
+        break  # Exit the wave loop
+    }
+
     $waveNumber = $waveIndex + 1
     $waveSites = $waves[$waveIndex]
     $waveStartTime = Get-Date
@@ -633,7 +671,14 @@ for ($waveIndex = 0; $waveIndex -lt $totalWaves; $waveIndex++) {
 
     $pollIntervalSeconds = 30
     $waveComplete = $false
-    $maxWaitMinutes = 10
+    # Configurable wave timeout (default 30 min, overridable via Automation Variable)
+    $maxWaitMinutes = 30
+    try {
+        $configuredTimeout = Get-AutomationVariable -Name 'WaveTimeoutMinutes' -ErrorAction SilentlyContinue
+        if ($null -ne $configuredTimeout -and [int]$configuredTimeout -gt 0) {
+            $maxWaitMinutes = [int]$configuredTimeout
+        }
+    } catch {}
     $waveDeadline = (Get-Date).AddMinutes($maxWaitMinutes)
 
     while (-not $waveComplete -and (Get-Date) -lt $waveDeadline) {
@@ -683,6 +728,15 @@ for ($waveIndex = 0; $waveIndex -lt $totalWaves; $waveIndex++) {
     $totalChildJobsFailed += $waveFailed
 
     $waveDuration = [math]::Round(((Get-Date) - $waveStartTime).TotalMinutes, 1)
+
+    $waveResults += @{
+        Wave      = $waveNumber
+        Sites     = $waveSites.Count
+        Succeeded = $waveSucceeded
+        Failed    = $waveFailed
+        Duration  = $waveDuration
+    }
+
     Write-Output "  Wave $waveNumber complete: $waveSucceeded succeeded, $waveFailed failed ($waveDuration min)"
     Write-Output ""
 
@@ -732,13 +786,129 @@ catch {
 
 #endregion
 
+#region Retry Failed Sites
+
+# Collect failed sites from wave errors
+$failedSiteUrls = @($waveErrors | ForEach-Object { $_.Site } | Where-Object { $_ })
+
+# Also check for timed-out waves — those sites may not be in waveErrors
+# (timed out jobs don't get individual error entries)
+
+if ($failedSiteUrls.Count -gt 0) {
+    $maxRetries = 1
+    try {
+        $configuredRetries = Get-AutomationVariable -Name 'MaxRetryWaves' -ErrorAction SilentlyContinue
+        if ($null -ne $configuredRetries) { $maxRetries = [int]$configuredRetries }
+    } catch {}
+
+    if ($maxRetries -gt 0) {
+        # Check runtime limit before retry
+        $elapsedMinutes = ((Get-Date) - $startTime).TotalMinutes
+        if ($elapsedMinutes -lt $maxRuntimeMinutes) {
+            $retryCount = [Math]::Min($failedSiteUrls.Count, $WaveSize)
+            $retrySites = $failedSiteUrls | Select-Object -First $retryCount
+
+            Write-Output ""
+            Write-Output "--- RETRY WAVE ($($retrySites.Count) failed sites) ---"
+
+            $retryJobs = @()
+            $retrySucceeded = 0
+            $retryFailed = 0
+
+            foreach ($siteUrl in $retrySites) {
+                $childParams = @{
+                    SiteUrls           = ConvertTo-Json -Compress @($siteUrl)
+                    RunId              = $runId
+                    KeyVaultName       = $KeyVaultName
+                    StorageAccountName = $StorageAccountName
+                    DryRun             = $DryRun.IsPresent
+                }
+
+                switch ($JobType) {
+                    'VersionCleanup' {
+                        $childParams['ExpireAfterDays'] = $config.ExpireAfterDays
+                        $childParams['MaxMajorVersions'] = $config.MaxMajorVersions
+                    }
+                }
+
+                try {
+                    $job = Start-AzAutomationRunbook `
+                        -ResourceGroupName $resourceGroupName `
+                        -AutomationAccountName $automationAccountName `
+                        -Name $childRunbookName `
+                        -Parameters $childParams `
+                        -ErrorAction Stop
+
+                    $retryJobs += $job
+                    Write-Output "  Retry started: $($job.JobId) -> $siteUrl"
+                } catch {
+                    Write-Warning "  Retry failed to start for ${siteUrl}: $($_.Exception.Message)"
+                    $retryFailed++
+                }
+            }
+
+            # Wait for retry wave
+            if ($retryJobs.Count -gt 0) {
+                Write-Output "  Waiting for retry wave..."
+                $retryDeadline = (Get-Date).AddMinutes($maxWaitMinutes)
+
+                while ((Get-Date) -lt $retryDeadline) {
+                    Start-Sleep -Seconds 30
+
+                    $allDone = $true
+                    $retrySucceeded = 0
+                    $retryFailed = 0
+
+                    foreach ($job in $retryJobs) {
+                        $jobStatus = Get-AzAutomationJob `
+                            -ResourceGroupName $resourceGroupName `
+                            -AutomationAccountName $automationAccountName `
+                            -Id $job.JobId `
+                            -ErrorAction SilentlyContinue
+
+                        if (-not $jobStatus) { continue }
+
+                        switch ($jobStatus.Status) {
+                            'Completed' { $retrySucceeded++ }
+                            'Failed'    { $retryFailed++ }
+                            'Stopped'   { $retryFailed++ }
+                            'Suspended' { $retryFailed++ }
+                            default     { $allDone = $false }
+                        }
+                    }
+
+                    if ($allDone) { break }
+                }
+
+                $totalChildJobsSucceeded += $retrySucceeded
+                $totalChildJobsFailed = $totalChildJobsFailed - $retrySites.Count + $retryFailed
+
+                Write-Output "  Retry results: $retrySucceeded succeeded, $retryFailed failed"
+                Write-Output ""
+            }
+        } else {
+            Write-Output "Skipping retry wave — runtime limit reached"
+        }
+    }
+}
+
+#endregion
+
 #region Completion
 
 $endTime = Get-Date
 $duration = $endTime - $startTime
 $durationMinutes = [math]::Round($duration.TotalMinutes, 2)
 
-$finalStatus = if ($totalChildJobsFailed -eq 0) { 'Completed' } else { 'Failed' }
+# Determine final status
+$hitRuntimeLimit = ((Get-Date) - $startTime).TotalMinutes -ge $maxRuntimeMinutes
+if ($hitRuntimeLimit -and $waveIndex -lt $totalWaves) {
+    $finalStatus = 'PartialComplete'
+} elseif ($totalChildJobsFailed -eq 0) {
+    $finalStatus = 'Completed'
+} else {
+    $finalStatus = 'Failed'
+}
 
 Write-Output "======================================"
 Write-Output "  ORCHESTRATOR SUMMARY"
@@ -772,14 +942,18 @@ try {
     Update-JobRun -StorageAccountName $StorageAccountName `
         -RunId $runId -JobType $JobType -Status $finalStatus `
         -TotalSites $siteUrls.Count -TotalWaves $totalWaves `
-        -CompletedWaves $totalWaves -Details @{
-            StartedAt      = $startTime.ToString("o")
-            CompletedAt    = $endTime.ToString("o")
-            DryRun         = $DryRun.IsPresent
-            WaveSize       = $WaveSize
-            JobsSucceeded  = $totalChildJobsSucceeded
-            JobsFailed     = $totalChildJobsFailed
+        -CompletedWaves $waveIndex -Details @{
+            StartedAt       = $startTime.ToString("o")
+            CompletedAt     = $endTime.ToString("o")
+            DryRun          = $DryRun.IsPresent
+            WaveSize        = $WaveSize
+            JobsSucceeded   = $totalChildJobsSucceeded
+            JobsFailed      = $totalChildJobsFailed
             DurationMinutes = $durationMinutes
+            WaveResults     = ($waveResults | ConvertTo-Json -Depth 3 -Compress)
+            RetryAttempted  = ($failedSiteUrls.Count -gt 0)
+            RetrySites      = $failedSiteUrls.Count
+            RetrySucceeded  = $(if ($retrySucceeded) { $retrySucceeded } else { 0 })
         }
     Write-Output "JobRun record updated: $finalStatus"
 }

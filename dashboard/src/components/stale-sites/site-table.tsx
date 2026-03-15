@@ -9,6 +9,16 @@ import { NotifyButton } from "./notify-button";
 import { updateStaleSiteAction } from "@/lib/api";
 import type { StaleSiteRecommendation } from "@/lib/types";
 
+function maskEmail(email: string): string {
+  if (!email) return "";
+  const [local, domain] = email.split("@");
+  if (!domain) return email;
+  const masked = local.length > 2
+    ? `${local[0]}${"*".repeat(Math.min(local.length - 2, 4))}${local[local.length - 1]}`
+    : local;
+  return `${masked}@${domain}`;
+}
+
 interface SiteTableProps {
   sites: StaleSiteRecommendation[];
   isLoading: boolean;
@@ -211,7 +221,9 @@ export function SiteTable({
                       </td>
                       <td className="px-4 py-3 text-sm">
                         <div className="font-medium">{site.siteName}</div>
-                        <div className="text-xs text-muted-foreground">{site.ownerEmail}</div>
+                        <div className="text-xs text-muted-foreground" title={site.ownerEmail}>
+                          {maskEmail(site.ownerEmail)}
+                        </div>
                       </td>
                       <td className="min-w-[200px] px-4 py-3">
                         <StalenessScore score={site.stalenessScore} category={site.category} />

@@ -65,6 +65,27 @@ if (-not $moduleLoaded) {
     catch { Write-Output "[INFO] SpaceAgent module not available — using inline helpers" }
 }
 
+# Inline fallback for Write-ErrorResult if module not loaded
+if (-not $moduleLoaded -or -not (Get-Command Write-ErrorResult -ErrorAction SilentlyContinue)) {
+    function Write-ErrorResult {
+        param($ErrorRecord, [string]$Operation = "Unknown")
+        $msg = if ($ErrorRecord -is [System.Management.Automation.ErrorRecord]) { $ErrorRecord.Exception.Message } else { [string]$ErrorRecord }
+        $errorCode = "UNKNOWN_ERROR"; $errorSource = "Unknown"; $isRetryable = $false
+        if ($msg -match "401|Unauthorized|token.*expired") { $errorCode = "AUTH_FAILURE"; $errorSource = "PnP"; $isRetryable = $true }
+        elseif ($msg -match "403|Access denied|Forbidden") { $errorCode = "ACCESS_DENIED"; $errorSource = "PnP" }
+        elseif ($msg -match "429|throttl|Too Many Requests") { $errorCode = "THROTTLE_429"; $errorSource = "Graph"; $isRetryable = $true }
+        elseif ($msg -match "timeout|timed out|operation.*expired|TaskCanceledException") { $errorCode = "PNP_TIMEOUT"; $errorSource = "PnP"; $isRetryable = $true }
+        elseif ($msg -match "list view threshold|exceeds the list view") { $errorCode = "LIST_THRESHOLD"; $errorSource = "PnP" }
+        elseif ($msg -match "Key Vault|SecretNotFound|VaultNotFound") { $errorCode = "KEYVAULT_ACCESS"; $errorSource = "KeyVault" }
+        elseif ($msg -match "module.*not found|Import-Module|CommandNotFoundException") { $errorCode = "MODULE_MISSING"; $errorSource = "Orchestrator" }
+        elseif ($msg -match "table.*not found|TableNotFound|storage") { $errorCode = "TABLE_STORAGE_ERROR"; $errorSource = "TableStorage"; $isRetryable = $true }
+        elseif ($msg -match "503|504|Service Unavailable") { $errorCode = "SERVICE_UNAVAILABLE"; $errorSource = "Graph"; $isRetryable = $true }
+        elseif ($msg -match "site.*not found|404") { $errorCode = "SITE_NOT_FOUND"; $errorSource = "PnP" }
+        elseif ($msg -match "Connect-PnPOnline|connection|disconnect") { $errorCode = "CONNECTION_FAILURE"; $errorSource = "PnP"; $isRetryable = $true }
+        return @{ ErrorCode = $errorCode; ErrorSource = $errorSource; ErrorMessage = $msg.Substring(0, [Math]::Min($msg.Length, 500)); IsRetryable = $isRetryable; Operation = $Operation }
+    }
+}
+
 # Authenticate with managed identity
 Connect-AzAccount -Identity | Out-Null
 Write-Output "[INFO] Authenticated with managed identity"
@@ -212,7 +233,7 @@ function Get-SiteAnalytics {
             $analytics.ActiveUsers30Days = $response.access.actionCount
         }
     } catch {
-        # Analytics may not be available for all sites
+        Write-Warning "    Analytics unavailable: $($_.Exception.Message)"
     }
 
     # Try site-level getActivitiesByInterval for more granular data
@@ -240,7 +261,7 @@ function Get-SiteAnalytics {
             }
         }
     } catch {
-        # Interval analytics may not be available
+        Write-Warning "    Analytics unavailable: $($_.Exception.Message)"
     }
 
     return $analytics
@@ -272,7 +293,9 @@ function Get-SiteFileCount {
                     } elseif ($rootResponse.value) {
                         $totalFiles += $rootResponse.value.Count
                     }
-                } catch {}
+                } catch {
+                    Write-Warning "    Analytics unavailable: $($_.Exception.Message)"
+                }
             }
         }
     } catch {
@@ -381,6 +404,8 @@ function Write-TableResult {
         SiteAgeYears        = $Result.SiteAgeYears
         Status              = $Result.Status
         ErrorMessage        = $Result.ErrorMessage
+        ErrorCode           = $Result.ErrorCode
+        ErrorSource         = $Result.ErrorSource
         CompletedAt         = (Get-Date -Format "o")
     }
 
@@ -437,6 +462,8 @@ foreach ($siteUrl in $sites) {
         SiteAgeYears      = 0
         Status            = "Success"
         ErrorMessage      = ""
+        ErrorCode         = ""
+        ErrorSource       = ""
     }
 
     Write-Output ""
@@ -533,8 +560,11 @@ foreach ($siteUrl in $sites) {
     } catch {
         $result.Status = "Error"
         $result.ErrorMessage = $_.Exception.Message
+        $errInfo = Write-ErrorResult -ErrorRecord $_ -Operation "StaleSiteDetector"
+        $result.ErrorCode = $errInfo.ErrorCode
+        $result.ErrorSource = $errInfo.ErrorSource
         $stats.Errors++
-        Write-Output "  ERROR: $($_.Exception.Message)"
+        Write-Output "  ERROR [$($errInfo.ErrorCode)]: $($_.Exception.Message)"
     } finally {
         # Disconnect PnP
         try { Disconnect-PnPOnline -ErrorAction SilentlyContinue } catch {}

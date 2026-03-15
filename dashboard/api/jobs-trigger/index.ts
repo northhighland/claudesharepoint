@@ -53,7 +53,8 @@ const handler: AzureFunction = async function (
     );
   } catch (error: unknown) {
     context.log.error("jobs-trigger error:", error);
-    context.res = errorResponse("Failed to trigger job: " + (error instanceof Error ? error.message : String(error)));
+    context.log.error("Failed to trigger job:", error);
+    context.res = errorResponse("Failed to trigger job. Please try again or contact support.");
   }
 };
 

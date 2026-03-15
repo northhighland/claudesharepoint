@@ -24,12 +24,25 @@ function mapJobRunEntity(entity) {
         : details.StartedAt && details.CompletedAt
             ? new Date(details.CompletedAt).getTime() - new Date(details.StartedAt).getTime()
             : undefined;
+    // Detect stalled jobs: Running for more than 4 hours
+    let status = entity.Status ?? "";
+    if (status === "Running" && details.StartedAt) {
+        const startedMs = new Date(details.StartedAt).getTime();
+        const now = Date.now();
+        const fourHoursMs = 4 * 60 * 60 * 1000;
+        if (!isNaN(startedMs) && now - startedMs > fourHoursMs) {
+            status = "Stalled";
+        }
+    }
+    if (status === "PartialComplete") {
+        // Keep as-is — orchestrator set this intentionally
+    }
     return {
         partitionKey: String(entity.partitionKey ?? ""),
         rowKey: String(entity.rowKey ?? ""),
         runId: String(entity.rowKey ?? ""),
         jobType: String(entity.partitionKey ?? ""),
-        status: entity.Status ?? "",
+        status,
         startedAt: details.StartedAt ?? raw.UpdatedAt ?? "",
         completedAt: details.CompletedAt ?? undefined,
         durationMs,
@@ -67,6 +80,8 @@ function mapVersionCleanupResultEntity(entity) {
         librariesProcessed: entity.LibrariesProcessed ?? 0,
         isDryRun: entity.DryRun ?? false,
         errorMessage: entity.ErrorMessage ?? undefined,
+        errorCode: entity.ErrorCode ?? undefined,
+        errorSource: entity.ErrorSource ?? undefined,
         processedAt: entity.CompletedAt ?? entity.ProcessedAt ?? "",
     };
 }
@@ -88,6 +103,8 @@ function mapStaleSiteEntity(entity) {
         adminAction: entity.AdminAction ?? null,
         actionDate: entity.AdminActionDate ?? undefined,
         analyzedAt: "",
+        errorCode: entity.ErrorCode ?? undefined,
+        errorSource: entity.ErrorSource ?? undefined,
     };
 }
 function mapQuotaStatusEntity(entity) {
@@ -110,6 +127,8 @@ function mapQuotaStatusEntity(entity) {
             : undefined,
         increasedAt: entity.AutoIncreaseDate ?? undefined,
         lastCheckedAt: "",
+        errorCode: entity.ErrorCode ?? undefined,
+        errorSource: entity.ErrorSource ?? undefined,
     };
 }
 function mapRecycleBinResultEntity(entity) {
@@ -125,6 +144,8 @@ function mapRecycleBinResultEntity(entity) {
             ? Math.round(entity.SpaceReclaimedMB * 1024 * 1024)
             : 0,
         errorMessage: entity.ErrorMessage ?? undefined,
+        errorCode: entity.ErrorCode ?? undefined,
+        errorSource: entity.ErrorSource ?? undefined,
         processedAt: entity.ProcessedAt ?? "",
     };
 }

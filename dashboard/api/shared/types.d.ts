@@ -26,6 +26,8 @@ export interface VersionCleanupResultEntity extends TableEntity {
     DryRun?: boolean;
     Status: string;
     ErrorMessage?: string;
+    ErrorCode?: string;
+    ErrorSource?: string;
     ProcessedAt?: string;
     CompletedAt?: string;
 }
@@ -42,6 +44,8 @@ export interface StaleSiteEntity extends TableEntity {
     AdminAction?: string;
     AdminActionDate?: string;
     AdminActionBy?: string;
+    ErrorCode?: string;
+    ErrorSource?: string;
 }
 export interface QuotaStatusEntity extends TableEntity {
     SiteUrl: string;
@@ -53,6 +57,8 @@ export interface QuotaStatusEntity extends TableEntity {
     AutoIncreasedGB?: number;
     AutoIncreaseDate?: string;
     Status: string;
+    ErrorCode?: string;
+    ErrorSource?: string;
 }
 export interface RecycleBinResultEntity extends TableEntity {
     SiteUrl: string;
@@ -61,6 +67,8 @@ export interface RecycleBinResultEntity extends TableEntity {
     SpaceReclaimedMB: number;
     Status: string;
     ErrorMessage?: string;
+    ErrorCode?: string;
+    ErrorSource?: string;
     ProcessedAt: string;
 }
 export interface DashboardOverviewResponse {
@@ -77,12 +85,14 @@ export interface DashboardOverviewResponse {
 export interface TriggerJobRequest {
     jobType: string;
     dryRun?: boolean;
+    batchSize?: number;
 }
 export interface StaleSiteActionRequest {
     siteUrl: string;
     action: "Keep" | "Archive" | "Delete";
 }
 export type SettingsMap = Record<string, string>;
+export type JobStatus = "Running" | "Completed" | "Failed" | "Stopped" | "Stalled" | "PartialComplete";
 export declare const VALID_JOB_TYPES: readonly ["VersionCleanup", "QuotaManager", "StaleSiteDetector", "RecycleBinCleaner"];
 export type ValidJobType = (typeof VALID_JOB_TYPES)[number];
 //# sourceMappingURL=types.d.ts.map

@@ -10,7 +10,29 @@ const SETTING_VARIABLES = [
     "QuotaIncrementGB",
     "TeamsWebhookUrl",
     "NotificationEmail",
+    "ScheduleVersionCleanup",
+    "ScheduleRecycleBinCleaner",
+    "ScheduleQuotaManager",
+    "ScheduleStaleSiteDetector",
 ];
+/** Validates a schedule JSON string. */
+function validateScheduleJson(v) {
+    if (v === "")
+        return null;
+    try {
+        const obj = JSON.parse(v);
+        if (typeof obj.enabled !== "boolean")
+            return "enabled must be a boolean";
+        if (!["daily", "weekly", "monthly"].includes(obj.frequency))
+            return "frequency must be daily, weekly, or monthly";
+        if (typeof obj.timeUtc !== "string" || !/^\d{2}:\d{2}$/.test(obj.timeUtc))
+            return "timeUtc must be HH:MM format";
+        return null;
+    }
+    catch {
+        return "Must be valid JSON";
+    }
+}
 /** Per-field value validators to prevent dangerous values. */
 const SETTING_VALIDATORS = {
     ExpireAfterDays: (v) => /^\d+$/.test(v) && +v >= 1 && +v <= 3650 ? null : "Must be 1-3650",
@@ -22,6 +44,10 @@ const SETTING_VALIDATORS = {
     NotificationEmail: (v) => v === "" || /^[^@\s]+@northhighland\.com$/i.test(v)
         ? null
         : "Must be empty or a @northhighland.com email",
+    ScheduleVersionCleanup: validateScheduleJson,
+    ScheduleRecycleBinCleaner: validateScheduleJson,
+    ScheduleQuotaManager: validateScheduleJson,
+    ScheduleStaleSiteDetector: validateScheduleJson,
 };
 const handler = async function (context, req) {
     try {

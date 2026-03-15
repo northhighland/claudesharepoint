@@ -45,6 +45,10 @@ export function mapJobRunEntity(entity: JobRunEntity) {
     }
   }
 
+  if (status === "PartialComplete") {
+    // Keep as-is — orchestrator set this intentionally
+  }
+
   return {
     partitionKey: String(entity.partitionKey ?? ""),
     rowKey: String(entity.rowKey ?? ""),
@@ -89,6 +93,8 @@ export function mapVersionCleanupResultEntity(entity: VersionCleanupResultEntity
     librariesProcessed: entity.LibrariesProcessed ?? 0,
     isDryRun: entity.DryRun ?? false,
     errorMessage: entity.ErrorMessage ?? undefined,
+    errorCode: entity.ErrorCode ?? undefined,
+    errorSource: entity.ErrorSource ?? undefined,
     processedAt: entity.CompletedAt ?? entity.ProcessedAt ?? "",
   };
 }
@@ -111,6 +117,8 @@ export function mapStaleSiteEntity(entity: StaleSiteEntity) {
     adminAction: entity.AdminAction ?? null,
     actionDate: entity.AdminActionDate ?? undefined,
     analyzedAt: "",
+    errorCode: entity.ErrorCode ?? undefined,
+    errorSource: entity.ErrorSource ?? undefined,
   };
 }
 
@@ -134,6 +142,8 @@ export function mapQuotaStatusEntity(entity: QuotaStatusEntity) {
       : undefined,
     increasedAt: entity.AutoIncreaseDate ?? undefined,
     lastCheckedAt: "",
+    errorCode: entity.ErrorCode ?? undefined,
+    errorSource: entity.ErrorSource ?? undefined,
   };
 }
 
@@ -150,6 +160,8 @@ export function mapRecycleBinResultEntity(entity: RecycleBinResultEntity) {
       ? Math.round(entity.SpaceReclaimedMB * 1024 * 1024)
       : 0,
     errorMessage: entity.ErrorMessage ?? undefined,
+    errorCode: entity.ErrorCode ?? undefined,
+    errorSource: entity.ErrorSource ?? undefined,
     processedAt: entity.ProcessedAt ?? "",
   };
 }

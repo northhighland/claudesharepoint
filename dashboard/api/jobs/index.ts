@@ -4,11 +4,21 @@ import { jsonResponse, errorResponse } from "../shared/response";
 import {
   JobRunEntity,
   VersionCleanupResultEntity,
+  QuotaStatusEntity,
+  StaleSiteEntity,
+  RecycleBinResultEntity,
   VALID_JOB_TYPES,
   ValidJobType,
 } from "../shared/types";
-import { TableEntity, odata } from "@azure/data-tables";
-import { mapJobRunEntity, mapVersionCleanupResultEntity } from "../shared/transforms";
+import { TableEntity } from "@azure/data-tables";
+import { odata } from "../shared/table-client";
+import {
+  mapJobRunEntity,
+  mapVersionCleanupResultEntity,
+  mapQuotaStatusEntity,
+  mapStaleSiteEntity,
+  mapRecycleBinResultEntity,
+} from "../shared/transforms";
 
 /** Map job types to their results table names. */
 const RESULTS_TABLE_MAP: Record<string, string> = {
@@ -33,8 +43,9 @@ const handler: AzureFunction = async function (
 
     return await handleListJobs(context, req);
   } catch (error: unknown) {
-    context.log.error("jobs error:", error);
-    context.res = errorResponse("An internal error occurred.");
+    const errMsg = error instanceof Error ? error.message : String(error);
+    context.log.error("jobs error:", errMsg);
+    context.res = errorResponse(`Job query failed: ${errMsg}`);
   }
 };
 
@@ -117,7 +128,7 @@ async function handleGetJob(
       context.log.info(`Querying ${resultsTableName} with PartitionKey='${runId}'`);
       const rawResults = await queryEntities<TableEntity>(
         resultsTableName,
-        `PartitionKey eq '${runId}'`
+        odata`PartitionKey eq ${runId}`
       );
       context.log.info(`Got ${rawResults.length} results from ${resultsTableName}`);
 
@@ -125,6 +136,18 @@ async function handleGetJob(
       if (jobType === "VersionCleanup") {
         mappedResults = (rawResults as unknown as VersionCleanupResultEntity[]).map(
           mapVersionCleanupResultEntity
+        );
+      } else if (jobType === "QuotaManager") {
+        mappedResults = (rawResults as unknown as QuotaStatusEntity[]).map(
+          mapQuotaStatusEntity
+        );
+      } else if (jobType === "StaleSiteDetector") {
+        mappedResults = (rawResults as unknown as StaleSiteEntity[]).map(
+          mapStaleSiteEntity
+        );
+      } else if (jobType === "RecycleBinCleaner") {
+        mappedResults = (rawResults as unknown as RecycleBinResultEntity[]).map(
+          mapRecycleBinResultEntity
         );
       } else {
         mappedResults = rawResults;

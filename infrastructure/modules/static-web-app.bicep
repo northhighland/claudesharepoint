@@ -4,11 +4,15 @@ param clientCode string
 @description('Azure region for Static Web App (limited availability: westus2, centralus, eastus2, westeurope, eastasia)')
 param location string = 'eastus2'
 
+@description('Resource tags')
+param tags object = {}
+
 var staticWebAppName = 'swa-csp-${clientCode}'
 
 resource staticWebApp 'Microsoft.Web/staticSites@2023-12-01' = {
   name: staticWebAppName
   location: location
+  tags: tags
   sku: {
     name: 'Standard'
     tier: 'Standard'

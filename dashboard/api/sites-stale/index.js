@@ -23,6 +23,11 @@ const handler = async function (context, req) {
 };
 async function handleGet(context, req) {
     const category = req.query.category;
+    const VALID_CATEGORIES = ["Stale", "Inactive", "Active", "Abandoned"];
+    if (category && !VALID_CATEGORIES.includes(category)) {
+        context.res = (0, response_1.errorResponse)(`Invalid category. Must be one of: ${VALID_CATEGORIES.join(", ")}`, 400);
+        return;
+    }
     // First, find the latest RunId by querying the most recent entries
     const allSites = await (0, table_client_1.queryEntities)(TABLE_NAME);
     if (allSites.length === 0) {

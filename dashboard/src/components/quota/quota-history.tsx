@@ -67,7 +67,9 @@ export function QuotaHistory({ sites, isLoading }: QuotaHistoryProps): React.Rea
                 <tr key={`${site.rowKey}-${site.increasedAt}`} className="hover:bg-accent/50">
                   <td className="px-4 py-3 text-sm">
                     <div className="font-medium">{site.siteName}</div>
-                    <div className="text-xs text-muted-foreground">{site.siteUrl}</div>
+                    <div className="text-xs text-muted-foreground truncate max-w-xs" title={site.siteUrl}>
+                      {site.siteUrl.replace(/^https?:\/\//, "").split("/").slice(0, 2).join("/")}...
+                    </div>
                   </td>
                   <td className="px-4 py-3 text-sm text-muted-foreground">
                     {site.previousQuotaBytes ? formatBytes(site.previousQuotaBytes) : "--"}

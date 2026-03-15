@@ -21,7 +21,13 @@ const handler: AzureFunction = async function (
 ): Promise<void> {
   try {
     const sortField = req.query.sort ?? "percentUsed";
-    const top = req.query.top ? parseInt(req.query.top, 10) : undefined;
+    const VALID_SORT_FIELDS = ["percentUsed", "storageUsedGB"] as const;
+    if (!VALID_SORT_FIELDS.includes(sortField as typeof VALID_SORT_FIELDS[number])) {
+      context.res = errorResponse(`Invalid sort field. Must be one of: ${VALID_SORT_FIELDS.join(", ")}`, 400);
+      return;
+    }
+    const topRaw = req.query.top ? parseInt(req.query.top, 10) : undefined;
+    const top = topRaw !== undefined ? (isNaN(topRaw) || topRaw < 1 ? undefined : Math.min(topRaw, 1000)) : undefined;
 
     // Query all quota status entries
     const allEntries = await queryEntities<QuotaStatusEntity>(TABLE_NAME);

@@ -39,6 +39,7 @@ export default function SettingsPage(): React.ReactElement {
   });
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [validationMsg, setValidationMsg] = useState<string | null>(null);
 
   useEffect(() => {
     if (settings) {
@@ -68,7 +69,32 @@ export default function SettingsPage(): React.ReactElement {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [settings]);
 
+  const validateForm = (): string | null => {
+    if (form.expireAfterDays < 1 || form.expireAfterDays > 3650) {
+      return "Expire After Days must be between 1 and 3650";
+    }
+    if (form.maxMajorVersions < 1 || form.maxMajorVersions > 10000) {
+      return "Max Major Versions must be between 1 and 10,000";
+    }
+    if (form.quotaIncrementGB < 0.5 || form.quotaIncrementGB > 1000) {
+      return "Quota Increment must be between 0.5 and 1,000 GB";
+    }
+    if (form.teamsWebhookUrl && !form.teamsWebhookUrl.startsWith("https://")) {
+      return "Teams Webhook URL must use HTTPS";
+    }
+    if (form.notificationEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.notificationEmail)) {
+      return "Invalid notification email address";
+    }
+    return null;
+  };
+
   const handleSave = async (): Promise<void> => {
+    const validationError = validateForm();
+    if (validationError) {
+      setValidationMsg(validationError);
+      return;
+    }
+    setValidationMsg(null);
     setSaving(true);
     setSaved(false);
     try {
@@ -129,6 +155,12 @@ export default function SettingsPage(): React.ReactElement {
           {saving ? "Saving..." : saved ? "Saved" : "Save Settings"}
         </button>
       </div>
+
+      {validationMsg && (
+        <div className="max-w-2xl rounded-lg border border-red-500/20 bg-red-500/10 p-3 text-sm text-red-400">
+          {validationMsg}
+        </div>
+      )}
 
       <div className="max-w-2xl space-y-6">
         {/* Version Cleanup Settings */}

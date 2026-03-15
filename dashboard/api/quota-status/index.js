@@ -15,7 +15,13 @@ const DISTRIBUTION_BUCKETS = [
 const handler = async function (context, req) {
     try {
         const sortField = req.query.sort ?? "percentUsed";
-        const top = req.query.top ? parseInt(req.query.top, 10) : undefined;
+        const VALID_SORT_FIELDS = ["percentUsed", "storageUsedGB"];
+        if (!VALID_SORT_FIELDS.includes(sortField)) {
+            context.res = (0, response_1.errorResponse)(`Invalid sort field. Must be one of: ${VALID_SORT_FIELDS.join(", ")}`, 400);
+            return;
+        }
+        const topRaw = req.query.top ? parseInt(req.query.top, 10) : undefined;
+        const top = topRaw !== undefined ? (isNaN(topRaw) || topRaw < 1 ? undefined : Math.min(topRaw, 1000)) : undefined;
         // Query all quota status entries
         const allEntries = await (0, table_client_1.queryEntities)(TABLE_NAME);
         if (allEntries.length === 0) {

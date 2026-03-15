@@ -13,6 +13,9 @@ param automationAccountName string = 'aa-csp-${clientCode}'
 @description('Comma-separated list of admin email addresses for dashboard RBAC')
 param adminUsers string = ''
 
+@description('Resource tags')
+param tags object = {}
+
 // --- Basic App Service Plan (Windows, B1) ---
 // Windows avoids Linux Kudu/SCM storage dependency issue.
 // No runtime storage account needed — all 6 functions are HTTP-only triggers.
@@ -22,6 +25,7 @@ var appServicePlanName = 'asp-csp-${clientCode}'
 resource appServicePlan 'Microsoft.Web/serverfarms@2023-12-01' = {
   name: appServicePlanName
   location: location
+  tags: tags
   sku: {
     name: 'B1'
     tier: 'Basic'
@@ -34,6 +38,7 @@ var functionAppName = 'func-csp-${clientCode}'
 resource functionApp 'Microsoft.Web/sites@2023-12-01' = {
   name: functionAppName
   location: location
+  tags: tags
   kind: 'functionapp'
   identity: {
     type: 'SystemAssigned'

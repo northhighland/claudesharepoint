@@ -4,6 +4,8 @@ param clientCode string
 @description('Azure region for deployment')
 param location string
 
+@description('Resource tags')
+param tags object = {}
 
 // Storage account names: 3-24 chars, lowercase alphanumeric only
 var storageAccountName = 'stcsp${clientCode}'
@@ -11,6 +13,7 @@ var storageAccountName = 'stcsp${clientCode}'
 resource storageAccount 'Microsoft.Storage/storageAccounts@2023-05-01' = {
   name: storageAccountName
   location: location
+  tags: tags
   kind: 'StorageV2'
   sku: {
     name: 'Standard_LRS'
