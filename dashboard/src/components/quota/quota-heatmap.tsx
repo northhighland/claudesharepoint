@@ -9,16 +9,16 @@ interface QuotaHeatmapProps {
 }
 
 function getHeatColor(percent: number): string {
-  if (percent >= 95) return "bg-red-500/80 text-white";
+  if (percent >= 90) return "bg-red-500/80 text-white";
   if (percent >= 85) return "bg-orange-500/70 text-white";
-  if (percent >= 70) return "bg-amber-500/60 text-amber-950";
+  if (percent >= 80) return "bg-yellow-500/60 text-yellow-950";
   return "bg-emerald-500/50 text-emerald-950";
 }
 
 function getHeatBorder(percent: number): string {
-  if (percent >= 95) return "border-red-600";
+  if (percent >= 90) return "border-red-600";
   if (percent >= 85) return "border-orange-500";
-  if (percent >= 70) return "border-yellow-500";
+  if (percent >= 80) return "border-yellow-500";
   return "border-green-500";
 }
 
@@ -47,19 +47,19 @@ export function QuotaHeatmap({ sites, isLoading }: QuotaHeatmapProps): React.Rea
         <div className="flex items-center gap-3 text-xs text-muted-foreground">
           <span className="flex items-center gap-1">
             <span className="inline-block h-3 w-3 rounded bg-emerald-500/50" />
-            &lt;70%
+            &lt;80%
           </span>
           <span className="flex items-center gap-1">
-            <span className="inline-block h-3 w-3 rounded bg-amber-500/60" />
-            70-85%
+            <span className="inline-block h-3 w-3 rounded bg-yellow-500/60" />
+            80-85%
           </span>
           <span className="flex items-center gap-1">
             <span className="inline-block h-3 w-3 rounded bg-orange-500/70" />
-            85-95%
+            85-90%
           </span>
           <span className="flex items-center gap-1">
             <span className="inline-block h-3 w-3 rounded bg-red-500/80" />
-            &gt;95%
+            &gt;90%
           </span>
         </div>
       </div>
