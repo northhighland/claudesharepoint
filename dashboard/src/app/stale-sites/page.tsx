@@ -10,6 +10,7 @@ import { ImpactSummary } from "@/components/stale-sites/impact-summary";
 import { ActiveJobBanner } from "@/components/jobs/active-job-banner";
 import { JobDetail } from "@/components/jobs/job-detail";
 import { TriggerModal } from "@/components/jobs/trigger-modal";
+import { ExportButton } from "@/components/ui/export-button";
 import type { JobRun } from "@/lib/types";
 import type { StaleSiteRecommendation } from "@/lib/types";
 
@@ -68,13 +69,28 @@ export default function StaleSitesPage(): React.ReactElement {
             These sites cost money but nobody uses them
           </p>
         </div>
-        <button
-          onClick={() => setTriggerOpen(true)}
-          className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
-        >
-          <Play className="h-4 w-4" />
-          Run Stale Site Detector
-        </button>
+        <div className="flex items-center gap-2">
+          <ExportButton
+            data={allSites as unknown as Record<string, unknown>[]}
+            filename="stale-sites"
+            columns={[
+              { key: "siteUrl", label: "Site URL" },
+              { key: "siteName", label: "Site Name" },
+              { key: "stalenessScore", label: "Score" },
+              { key: "category", label: "Category" },
+              { key: "lastActivityDate", label: "Last Activity" },
+              { key: "storageUsedBytes", label: "Storage Used" },
+              { key: "adminAction", label: "Admin Action" },
+            ]}
+          />
+          <button
+            onClick={() => setTriggerOpen(true)}
+            className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+          >
+            <Play className="h-4 w-4" />
+            Run Stale Site Detector
+          </button>
+        </div>
       </div>
 
       {/* Active job banner */}

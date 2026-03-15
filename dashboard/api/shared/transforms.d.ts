@@ -36,6 +36,8 @@ export declare function mapVersionCleanupResultEntity(entity: VersionCleanupResu
     librariesProcessed: number;
     isDryRun: boolean;
     errorMessage: string | undefined;
+    errorCode: string | undefined;
+    errorSource: string | undefined;
     processedAt: string;
 };
 export declare function mapStaleSiteEntity(entity: StaleSiteEntity): {
@@ -53,6 +55,8 @@ export declare function mapStaleSiteEntity(entity: StaleSiteEntity): {
     adminAction: string | null;
     actionDate: string | undefined;
     analyzedAt: string;
+    errorCode: string | undefined;
+    errorSource: string | undefined;
 };
 export declare function mapQuotaStatusEntity(entity: QuotaStatusEntity): {
     partitionKey: string;
@@ -67,6 +71,8 @@ export declare function mapQuotaStatusEntity(entity: QuotaStatusEntity): {
     newQuotaBytes: number | undefined;
     increasedAt: string | undefined;
     lastCheckedAt: string;
+    errorCode: string | undefined;
+    errorSource: string | undefined;
 };
 export declare function mapRecycleBinResultEntity(entity: RecycleBinResultEntity): {
     partitionKey: string;
@@ -78,6 +84,8 @@ export declare function mapRecycleBinResultEntity(entity: RecycleBinResultEntity
     itemsDeleted: number;
     spaceReclaimedBytes: number;
     errorMessage: string | undefined;
+    errorCode: string | undefined;
+    errorSource: string | undefined;
     processedAt: string;
 };
 //# sourceMappingURL=transforms.d.ts.map
