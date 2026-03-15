@@ -20,11 +20,14 @@ import { ActiveJobBanner } from "@/components/jobs/active-job-banner";
 import { JobDetail } from "@/components/jobs/job-detail";
 import { TriggerModal } from "@/components/jobs/trigger-modal";
 import { ExportButton } from "@/components/ui/export-button";
+import { SiteSearch } from "@/components/ui/site-search";
+import { DataFreshness } from "@/components/ui/data-freshness";
+import { NextRunIndicator } from "@/components/ui/next-run-indicator";
 import type { JobRun } from "@/lib/types";
 import type { StaleSiteRecommendation } from "@/lib/types";
 
 type CategoryFilter = "all" | "Active" | "Low Activity" | "Stale" | "Abandoned";
-type FilterStatus = "all" | "Completed" | "Failed" | "Running";
+type FilterStatus = "all" | "Completed" | "Failed" | "Running" | "PartialComplete";
 
 /* ------------------------------------------------------------------ */
 /*  Helpers                                                            */
@@ -81,7 +84,7 @@ const CATEGORY_CONFIG: Record<
     bg: "bg-amber-500/10",
     text: "text-amber-400",
     border: "border-amber-500/30",
-    label: "Dormant",
+    label: "Stale",
   },
   Abandoned: {
     icon: Trash2,
@@ -101,8 +104,10 @@ export default function StaleSitesPage(): React.ReactElement {
   const [statusFilter, setStatusFilter] = useState<FilterStatus>("all");
   const [selectedJob, setSelectedJob] = useState<JobRun | null>(null);
   const [triggerOpen, setTriggerOpen] = useState(false);
+  const [siteSearch, setSiteSearch] = useState("");
 
   const { data: rawSites, isLoading, mutate: mutateSites } = usePolling("stale-sites", fetchStaleSites, 60000);
+  const lastUpdated = rawSites ? new Date().toISOString() : undefined;
 
   const [pollInterval, setPollInterval] = useState(60000);
   const jobFetcher = useCallback(
@@ -129,6 +134,15 @@ export default function StaleSitesPage(): React.ReactElement {
 
   const filtered =
     category === "all" ? allSites : allSites.filter((s) => s.category === category);
+
+  // Search filter — applied after category filter
+  const searchedSites = siteSearch
+    ? filtered.filter(
+        (s) =>
+          s.siteName.toLowerCase().includes(siteSearch.toLowerCase()) ||
+          s.siteUrl.toLowerCase().includes(siteSearch.toLowerCase())
+      )
+    : filtered;
 
   // Category counts & storage
   const categoryStats = useMemo(() => {
@@ -186,6 +200,10 @@ export default function StaleSitesPage(): React.ReactElement {
           <p className="text-sm text-muted-foreground">
             Identify and manage inactive SharePoint sites consuming storage
           </p>
+          <div className="mt-1 flex items-center gap-3">
+            <DataFreshness lastUpdated={lastUpdated} pollInterval={60000} />
+            <NextRunIndicator jobType="StaleSiteDetector" />
+          </div>
         </div>
         <div className="flex items-center gap-2">
           <ExportButton
@@ -233,7 +251,7 @@ export default function StaleSitesPage(): React.ReactElement {
               <div className="mt-1.5 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
                 {categoryStats.Stale.count > 0 && (
                   <span>
-                    <span className="font-medium text-amber-400">{categoryStats.Stale.count}</span> site{categoryStats.Stale.count !== 1 ? "s" : ""} dormant ({formatBytes(categoryStats.Stale.bytes)})
+                    <span className="font-medium text-amber-400">{categoryStats.Stale.count}</span> stale site{categoryStats.Stale.count !== 1 ? "s" : ""} ({formatBytes(categoryStats.Stale.bytes)})
                   </span>
                 )}
                 {categoryStats.Abandoned.count > 0 && (
@@ -356,12 +374,20 @@ export default function StaleSitesPage(): React.ReactElement {
         </div>
       )}
 
+      {/* Site search */}
+      <SiteSearch
+        value={siteSearch}
+        onChange={setSiteSearch}
+        resultCount={siteSearch ? searchedSites.length : undefined}
+        totalCount={siteSearch ? filtered.length : undefined}
+      />
+
       {/* Impact Summary with cost estimates */}
-      <ImpactSummary sites={allSites} />
+      <ImpactSummary sites={searchedSites} />
 
       {/* Site Table */}
       <SiteTable
-        sites={filtered}
+        sites={searchedSites}
         isLoading={isLoading}
         onActionComplete={() => mutateSites()}
       />
@@ -372,7 +398,7 @@ export default function StaleSitesPage(): React.ReactElement {
 
         {/* Status filter */}
         <div className="flex gap-2">
-          {(["all", "Completed", "Running", "Failed"] as FilterStatus[]).map((status) => (
+          {(["all", "Completed", "Running", "Failed", "PartialComplete"] as FilterStatus[]).map((status) => (
             <button
               key={status}
               onClick={() => setStatusFilter(status)}
@@ -383,7 +409,7 @@ export default function StaleSitesPage(): React.ReactElement {
                   : "bg-muted text-muted-foreground hover:text-foreground"
               )}
             >
-              {status === "all" ? "All" : status}
+              {status === "all" ? "All" : status === "PartialComplete" ? "Partial" : status}
             </button>
           ))}
         </div>

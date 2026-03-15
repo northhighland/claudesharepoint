@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { HardDrive, Globe, DollarSign, Clock } from "lucide-react";
 import { formatBytes, formatNumber } from "@/lib/utils";
+import { InfoTooltip } from "@/components/ui/info-tooltip";
 import type { DashboardOverview } from "@/lib/types";
 
 interface StatsCardsProps {
@@ -26,6 +27,7 @@ export function StatsCards({ overview, isLoading }: StatsCardsProps): React.Reac
       label: "Storage Reclaimed",
       value: overview ? formatBytes(overview.totalStorageReclaimedBytes) : "0 B",
       subtitle: undefined as string | undefined,
+      tooltip: "Total space freed by Version Cleanup and Recycle Bin jobs across all runs",
       icon: <HardDrive className="h-5 w-5" />,
       color: "bg-primary/10 text-primary",
       href: "/versions",
@@ -34,6 +36,7 @@ export function StatsCards({ overview, isLoading }: StatsCardsProps): React.Reac
       label: "Admin Hours Saved",
       value: hoursSaved.toLocaleString(),
       subtitle: `${personDays} person-day${personDays !== 1 ? "s" : ""}`,
+      tooltip: "Calculated at 15 minutes per site processed. Manual version cleanup, quota checks, and stale site reviews typically take 10-20 min each.",
       icon: <Clock className="h-5 w-5" />,
       color: "bg-sky-500/10 text-sky-400",
       href: "/jobs",
@@ -42,6 +45,7 @@ export function StatsCards({ overview, isLoading }: StatsCardsProps): React.Reac
       label: "Cost Avoidance",
       value: `$${formatNumber(overview?.costAvoidanceDollars ?? 0)}`,
       subtitle: undefined as string | undefined,
+      tooltip: "Admin hours saved \u00d7 $85/hour (blended rate for SharePoint administration). Adjust rate in Settings.",
       icon: <DollarSign className="h-5 w-5" />,
       color: "bg-emerald-500/10 text-emerald-400",
       href: "/quota",
@@ -50,6 +54,7 @@ export function StatsCards({ overview, isLoading }: StatsCardsProps): React.Reac
       label: "Sites Processed",
       value: (overview?.totalSitesProcessed ?? 0).toLocaleString(),
       subtitle: undefined as string | undefined,
+      tooltip: "Total unique site processing actions across all completed non-DryRun jobs",
       icon: <Globe className="h-5 w-5" />,
       color: "bg-sky-500/10 text-sky-400",
       href: "/versions",
@@ -67,6 +72,7 @@ export function StatsCards({ overview, isLoading }: StatsCardsProps): React.Reac
           <div className="flex items-center justify-between">
             <p className="text-xs uppercase tracking-wider text-muted-foreground">
               {card.label}
+              {card.tooltip && <InfoTooltip text={card.tooltip} className="ml-1" />}
             </p>
             <div className={`rounded-lg p-2 ${card.color}`}>{card.icon}</div>
           </div>

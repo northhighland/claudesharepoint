@@ -21,9 +21,11 @@ import { formatBytes, formatDate, formatDuration, getStatusColor, cn } from "@/l
 import { JobDetail } from "@/components/jobs/job-detail";
 import { TriggerModal } from "@/components/jobs/trigger-modal";
 import { ExportButton } from "@/components/ui/export-button";
+import { DataFreshness } from "@/components/ui/data-freshness";
+import { NextRunIndicator } from "@/components/ui/next-run-indicator";
 import type { JobRun } from "@/lib/types";
 
-type FilterStatus = "all" | "Completed" | "Failed" | "Running";
+type FilterStatus = "all" | "Completed" | "Failed" | "Running" | "PartialComplete";
 
 export default function RecycleBinPage(): React.ReactElement {
   const [statusFilter, setStatusFilter] = useState<FilterStatus>("all");
@@ -36,6 +38,7 @@ export default function RecycleBinPage(): React.ReactElement {
     []
   );
   const { data: jobs, isLoading, mutate } = usePolling("recycle-bin-jobs", fetcher, pollInterval);
+  const lastUpdated = jobs ? new Date().toISOString() : undefined;
 
   // Dynamic polling: 5s when jobs are running, 30s otherwise
   useEffect(() => {
@@ -66,6 +69,10 @@ export default function RecycleBinPage(): React.ReactElement {
           <p className="text-sm text-muted-foreground">
             Recycle bin cleanup results across SharePoint sites
           </p>
+          <div className="mt-1 flex items-center gap-3">
+            <DataFreshness lastUpdated={lastUpdated} pollInterval={pollInterval} />
+            <NextRunIndicator jobType="RecycleBinCleaner" />
+          </div>
         </div>
         <div className="flex items-center gap-2">
           <ExportButton
@@ -207,7 +214,7 @@ export default function RecycleBinPage(): React.ReactElement {
       {/* Filter */}
       <div className="flex items-center justify-between">
         <div className="flex gap-2">
-          {(["all", "Completed", "Running", "Failed"] as FilterStatus[]).map((status) => (
+          {(["all", "Completed", "Running", "Failed", "PartialComplete"] as FilterStatus[]).map((status) => (
             <button
               key={status}
               onClick={() => setStatusFilter(status)}
@@ -218,7 +225,7 @@ export default function RecycleBinPage(): React.ReactElement {
                   : "bg-muted text-muted-foreground hover:text-foreground"
               )}
             >
-              {status === "all" ? "All" : status}
+              {status === "all" ? "All" : status === "PartialComplete" ? "Partial" : status}
               {status !== "all" && (
                 <span className="ml-1 opacity-70">
                   ({allJobs.filter((j) => j.status === status).length})

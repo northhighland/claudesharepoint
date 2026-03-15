@@ -125,10 +125,10 @@ export function JobActivityFeed({
           Job Activity
         </h3>
         <Link
-          href="/jobs"
+          href="/versions"
           className="text-xs text-muted-foreground transition-colors hover:text-primary"
         >
-          View all
+          View all jobs
         </Link>
       </div>
 

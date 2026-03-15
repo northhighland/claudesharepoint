@@ -14,9 +14,13 @@ import { ActiveJobBanner } from "@/components/jobs/active-job-banner";
 import { JobDetail } from "@/components/jobs/job-detail";
 import { TriggerModal } from "@/components/jobs/trigger-modal";
 import { ExportButton } from "@/components/ui/export-button";
+import { SiteSearch } from "@/components/ui/site-search";
+import { DataFreshness } from "@/components/ui/data-freshness";
+import { NextRunIndicator } from "@/components/ui/next-run-indicator";
+import { InfoTooltip } from "@/components/ui/info-tooltip";
 import type { JobRun, QuotaStatus } from "@/lib/types";
 
-type FilterStatus = "all" | "Completed" | "Failed" | "Running";
+type FilterStatus = "all" | "Completed" | "Failed" | "Running" | "PartialComplete";
 
 /** Deduplicate sites by URL (safety net — API should already handle this) */
 function dedupSites(sites: QuotaStatus[]): QuotaStatus[] {
@@ -33,8 +37,10 @@ export default function QuotaPage(): React.ReactElement {
   const [statusFilter, setStatusFilter] = useState<FilterStatus>("all");
   const [selectedJob, setSelectedJob] = useState<JobRun | null>(null);
   const [triggerOpen, setTriggerOpen] = useState(false);
+  const [siteSearch, setSiteSearch] = useState("");
 
   const { data, isLoading } = usePolling("quota", () => fetchQuotaStatus(), 60000);
+  const lastUpdated = data ? new Date().toISOString() : undefined;
 
   const [pollInterval, setPollInterval] = useState(60000);
   const jobFetcher = useCallback(
@@ -61,6 +67,15 @@ export default function QuotaPage(): React.ReactElement {
   const warning = sites.filter((s) => s.percentUsed >= 80 && s.percentUsed < 90).length;
   const totalUsedBytes = sites.reduce((sum, s) => sum + s.usedBytes, 0);
 
+  // Search filter — applied to site lists but not summary stats
+  const searchedSites = siteSearch
+    ? sites.filter(
+        (s) =>
+          s.siteName.toLowerCase().includes(siteSearch.toLowerCase()) ||
+          s.siteUrl.toLowerCase().includes(siteSearch.toLowerCase())
+      )
+    : sites;
+
   if (selectedJob) {
     return <JobDetail job={selectedJob} onBack={() => setSelectedJob(null)} />;
   }
@@ -74,6 +89,10 @@ export default function QuotaPage(): React.ReactElement {
           <p className="text-sm text-muted-foreground">
             Storage health across the environment
           </p>
+          <div className="mt-1 flex items-center gap-3">
+            <DataFreshness lastUpdated={lastUpdated} pollInterval={60000} />
+            <NextRunIndicator jobType="QuotaManager" />
+          </div>
         </div>
         <div className="flex items-center gap-2">
           <ExportButton
@@ -108,7 +127,10 @@ export default function QuotaPage(): React.ReactElement {
           <p className="mt-1 font-mono text-2xl font-bold">{isLoading ? "--" : sites.length.toLocaleString()}</p>
         </div>
         <div className="glass-card rounded-xl p-4 animate-fade-in-up-delay-1">
-          <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Critical (&gt;90%)</p>
+          <p className="text-[10px] uppercase tracking-wider text-muted-foreground">
+            Critical (&gt;90%)
+            <InfoTooltip text="Sites using more than 90% of their storage quota. Auto-increase is triggered at this threshold." className="ml-1" />
+          </p>
           <p className={cn(
             "mt-1 font-mono text-2xl font-bold",
             !isLoading && critical > 0 ? "text-red-400" : "text-muted-foreground"
@@ -117,7 +139,10 @@ export default function QuotaPage(): React.ReactElement {
           </p>
         </div>
         <div className="glass-card rounded-xl p-4 animate-fade-in-up-delay-2">
-          <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Warning (80-90%)</p>
+          <p className="text-[10px] uppercase tracking-wider text-muted-foreground">
+            Warning (80-90%)
+            <InfoTooltip text="Sites between 80-90% usage. Monitor closely — approaching auto-increase threshold." className="ml-1" />
+          </p>
           <p className={cn(
             "mt-1 font-mono text-2xl font-bold",
             !isLoading && warning > 0 ? "text-amber-400" : "text-muted-foreground"
@@ -137,27 +162,35 @@ export default function QuotaPage(): React.ReactElement {
         <DistributionChart data={distribution} isLoading={isLoading} />
       </div>
 
+      {/* Site search */}
+      <SiteSearch
+        value={siteSearch}
+        onChange={setSiteSearch}
+        resultCount={siteSearch ? searchedSites.length : undefined}
+        totalCount={siteSearch ? sites.length : undefined}
+      />
+
       {/* Heatmap — full width */}
-      <QuotaHeatmap sites={sites} isLoading={isLoading} />
+      <QuotaHeatmap sites={searchedSites} isLoading={isLoading} />
 
       {/* Top 20 lists side by side */}
       <div className="grid gap-6 lg:grid-cols-2">
         <TopSitesList
           title="Top 20 — Highest % Used"
-          sites={sites}
+          sites={searchedSites}
           metric="percentUsed"
           limit={20}
         />
         <TopSitesList
           title="Top 20 — Largest by GB"
-          sites={sites}
+          sites={searchedSites}
           metric="usedBytes"
           limit={20}
         />
       </div>
 
       {/* Auto-increase history */}
-      <QuotaHistory sites={sites} isLoading={isLoading} />
+      <QuotaHistory sites={searchedSites} isLoading={isLoading} />
 
       {/* Recent Quota Runs */}
       <div className="space-y-4">
@@ -165,7 +198,7 @@ export default function QuotaPage(): React.ReactElement {
 
         {/* Status filter */}
         <div className="flex gap-2">
-          {(["all", "Completed", "Running", "Failed"] as FilterStatus[]).map((status) => (
+          {(["all", "Completed", "Running", "Failed", "PartialComplete"] as FilterStatus[]).map((status) => (
             <button
               key={status}
               onClick={() => setStatusFilter(status)}
@@ -176,7 +209,7 @@ export default function QuotaPage(): React.ReactElement {
                   : "bg-muted text-muted-foreground hover:text-foreground"
               )}
             >
-              {status === "all" ? "All" : status}
+              {status === "all" ? "All" : status === "PartialComplete" ? "Partial" : status}
             </button>
           ))}
         </div>

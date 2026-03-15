@@ -1,6 +1,7 @@
 "use client";
 
 import { cn } from "@/lib/utils";
+import { InfoTooltip } from "@/components/ui/info-tooltip";
 
 interface TenantHealthGaugeProps {
   score: number;
@@ -104,6 +105,7 @@ export function TenantHealthGauge({
     <div className="glass-card animate-fade-in-up rounded-xl p-6">
       <h3 className="mb-2 text-xs uppercase tracking-wider text-muted-foreground">
         Tenant Health Score
+        <InfoTooltip text="Weighted score: Quota Health (40%) + Site Freshness (40%) + Job Reliability (20%). Higher is better." className="ml-1" />
       </h3>
 
       <div className="flex flex-col items-center">
