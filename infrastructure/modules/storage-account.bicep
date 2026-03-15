@@ -27,9 +27,14 @@ resource storageAccount 'Microsoft.Storage/storageAccounts@2023-05-01' = {
     minimumTlsVersion: 'TLS1_2'
     allowBlobPublicAccess: false
     allowSharedKeyAccess: false
-    publicNetworkAccess: 'Enabled' // Required for SWA managed API and Function App to reach storage; locked down by networkAcls
+    publicNetworkAccess: 'Enabled' // Required for SWA managed API and Function App to reach storage
     networkAcls: {
-      defaultAction: 'Deny'
+      // Cannot use defaultAction:'Deny' — Azure Automation runbooks use Get-AzAccessToken + REST API
+      // to write to Table Storage, which is NOT covered by bypass:'AzureServices' (that only covers
+      // first-party Azure service internal calls, not custom bearer-token REST requests).
+      // resourceAccessRules also does NOT support Automation Accounts or Function Apps.
+      // TODO: Refactor runbooks to use Az.Storage module or Private Endpoints to re-enable Deny.
+      defaultAction: 'Allow'
       bypass: 'AzureServices'
       ipRules: []
     }
