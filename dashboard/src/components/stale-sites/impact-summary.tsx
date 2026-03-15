@@ -2,6 +2,7 @@
 
 import { formatBytes } from "@/lib/utils";
 import { DollarSign, TrendingDown } from "lucide-react";
+import { InfoTooltip } from "@/components/ui/info-tooltip";
 import type { StaleSiteRecommendation } from "@/lib/types";
 
 interface ImpactSummaryProps {
@@ -59,7 +60,10 @@ export function ImpactSummary({ sites }: ImpactSummaryProps): React.ReactElement
   return (
     <div className="glass-card rounded-xl p-5 animate-fade-in-up">
       <div className="flex items-center justify-between mb-4">
-        <h4 className="text-sm font-medium">Storage Impact by Category</h4>
+        <h4 className="text-sm font-medium">
+          Storage Impact by Category
+          <InfoTooltip text="Estimated at $0.023/GB/month (Microsoft 365 SharePoint storage rate). Actual costs may vary by license agreement." className="ml-1" />
+        </h4>
         <span className="font-mono text-sm text-muted-foreground">
           Total: {formatBytes(totalBytes)}
         </span>

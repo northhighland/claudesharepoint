@@ -6,6 +6,8 @@ import {
   RecycleBinResultEntity,
 } from "./types";
 
+const STALL_THRESHOLD_MS = 4 * 60 * 60 * 1000; // 4 hours
+
 interface JobDetails {
   StartedAt?: string;
   CompletedAt?: string;
@@ -39,8 +41,7 @@ export function mapJobRunEntity(entity: JobRunEntity) {
   if (status === "Running" && details.StartedAt) {
     const startedMs = new Date(details.StartedAt).getTime();
     const now = Date.now();
-    const fourHoursMs = 4 * 60 * 60 * 1000;
-    if (!isNaN(startedMs) && now - startedMs > fourHoursMs) {
+    if (!isNaN(startedMs) && now - startedMs > STALL_THRESHOLD_MS) {
       status = "Stalled";
     }
   }
@@ -99,6 +100,17 @@ export function mapVersionCleanupResultEntity(entity: VersionCleanupResultEntity
   };
 }
 
+function mapStaleSiteCategory(raw: string): string {
+  switch (raw) {
+    case "LowActivity": return "Low Activity";
+    case "Dormant": return "Stale";
+    case "RecommendArchive": return "Stale";
+    case "RecommendDelete": return "Abandoned";
+    case "Active": return "Active";
+    default: return raw;
+  }
+}
+
 export function mapStaleSiteEntity(entity: StaleSiteEntity) {
   return {
     partitionKey: String(entity.partitionKey ?? ""),
@@ -106,17 +118,17 @@ export function mapStaleSiteEntity(entity: StaleSiteEntity) {
     siteUrl: entity.SiteUrl ?? "",
     siteName: entity.SiteTitle ?? "",
     stalenessScore: entity.StalenessScore ?? 0,
-    category: entity.Category ?? "Active",
+    category: mapStaleSiteCategory(entity.Category ?? "Active"),
     lastActivityDate: entity.LastActivityDate ?? "",
     lastContentModified: entity.LastModifiedDate ?? "",
     ownerEmail: entity.OwnerEmail ?? "",
     storageUsedBytes: entity.StorageUsedGB
       ? Math.round(entity.StorageUsedGB * 1024 * 1024 * 1024)
       : 0,
-    memberCount: 0,
+    memberCount: 0, // Not tracked by runbook
     adminAction: entity.AdminAction ?? null,
     actionDate: entity.AdminActionDate ?? undefined,
-    analyzedAt: "",
+    analyzedAt: (entity as Record<string, unknown>).CompletedAt as string ?? "",
     errorCode: entity.ErrorCode ?? undefined,
     errorSource: entity.ErrorSource ?? undefined,
   };
@@ -141,7 +153,7 @@ export function mapQuotaStatusEntity(entity: QuotaStatusEntity) {
       ? Math.round(entity.AutoIncreasedGB * 1024 * 1024 * 1024)
       : undefined,
     increasedAt: entity.AutoIncreaseDate ?? undefined,
-    lastCheckedAt: "",
+    lastCheckedAt: (entity as Record<string, unknown>).CompletedAt as string ?? "",
     errorCode: entity.ErrorCode ?? undefined,
     errorSource: entity.ErrorSource ?? undefined,
   };
@@ -153,7 +165,7 @@ export function mapRecycleBinResultEntity(entity: RecycleBinResultEntity) {
     rowKey: String(entity.rowKey ?? ""),
     runId: entity.RunId ?? "",
     siteUrl: entity.SiteUrl ?? "",
-    siteName: "",
+    siteName: (entity as Record<string, unknown>).SiteTitle as string ?? "",
     status: entity.Status ?? "Success",
     itemsDeleted: entity.ItemsDeleted ?? 0,
     spaceReclaimedBytes: entity.SpaceReclaimedMB

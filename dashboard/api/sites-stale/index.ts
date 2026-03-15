@@ -38,7 +38,7 @@ async function handleGet(
   req: HttpRequest
 ): Promise<void> {
   const category = req.query.category;
-  const VALID_CATEGORIES = ["Stale", "Inactive", "Active", "Abandoned"] as const;
+  const VALID_CATEGORIES = ["Active", "LowActivity", "Dormant", "RecommendArchive", "RecommendDelete", "Low Activity", "Stale", "Abandoned"] as const;
   if (category && !VALID_CATEGORIES.includes(category as typeof VALID_CATEGORIES[number])) {
     context.res = errorResponse(`Invalid category. Must be one of: ${VALID_CATEGORIES.join(", ")}`, 400);
     return;

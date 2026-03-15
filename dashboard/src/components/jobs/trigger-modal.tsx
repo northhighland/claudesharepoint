@@ -142,6 +142,7 @@ export function TriggerModal({
                     type="number"
                     min={0}
                     max={7200}
+                    title="Maximum batch size: 7,200 sites per run"
                     value={batchSize}
                     onChange={(e) => setBatchSize(parseInt(e.target.value) || 0)}
                     className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
@@ -177,7 +178,7 @@ export function TriggerModal({
                   </button>
                 </div>
                 {batchSize === 0 && (
-                  <p className="mt-1 text-[11px] text-amber-400">All 7,160+ sites will be processed</p>
+                  <p className="mt-1 text-[11px] text-amber-400">All sites will be processed</p>
                 )}
               </div>
 
@@ -205,7 +206,7 @@ export function TriggerModal({
                         <p className="font-medium mb-1">Troubleshooting:</p>
                         <ol className="list-decimal list-inside space-y-0.5">
                           <li>You are signed in</li>
-                          <li>Your IP is allowlisted</li>
+                          <li>Your Azure AD authentication is valid</li>
                           <li>The Function App is running</li>
                         </ol>
                       </div>
