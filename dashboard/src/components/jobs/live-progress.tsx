@@ -1,6 +1,6 @@
 "use client";
 
-import { formatDuration } from "@/lib/utils";
+import { formatDuration, clampPercent } from "@/lib/utils";
 import { useNow } from "@/hooks/use-now";
 import type { JobRun } from "@/lib/types";
 
@@ -14,7 +14,7 @@ export function LiveProgress({ job }: LiveProgressProps): React.ReactElement {
   const succeeded = job.jobsSucceeded ?? 0;
   const failed = job.jobsFailed ?? 0;
   const processed = succeeded + failed;
-  const percent = job.totalSites > 0 ? Math.round((processed / job.totalSites) * 100) : 0;
+  const percent = clampPercent(job.totalSites > 0 ? Math.round((processed / job.totalSites) * 100) : 0);
 
   // Calculate ETA based on elapsed time and progress
   const now = useNow(5000);

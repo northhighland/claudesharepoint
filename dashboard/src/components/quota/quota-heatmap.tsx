@@ -1,6 +1,6 @@
 "use client";
 
-import { cn, formatBytes } from "@/lib/utils";
+import { cn, formatBytes, clampPercent } from "@/lib/utils";
 import type { QuotaStatus } from "@/lib/types";
 
 interface QuotaHeatmapProps {

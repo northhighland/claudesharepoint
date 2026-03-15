@@ -1,6 +1,6 @@
 "use client";
 
-import { cn } from "@/lib/utils";
+import { cn, clampPercent } from "@/lib/utils";
 
 interface StalenessScoreProps {
   score: number;
@@ -41,7 +41,7 @@ export function StalenessScore({
         <div className="h-2 w-full rounded-full bg-muted">
           <div
             className={cn("h-2 rounded-full transition-all", getScoreColor(score))}
-            style={{ width: `${Math.min(score, 100)}%` }}
+            style={{ width: `${clampPercent(score)}%` }}
           />
         </div>
       </div>

@@ -41,6 +41,7 @@ resource pnpModule 'Microsoft.Automation/automationAccounts/powershell72Modules@
 }
 
 // Automation Variables (configuration)
+// Non-sensitive configuration variables (plaintext)
 var automationVariables = [
   { name: 'ExpireAfterDays', value: '90', description: 'Days after which versions expire' }
   { name: 'MaxMajorVersions', value: '100', description: 'Maximum major versions to keep per file' }
@@ -50,7 +51,6 @@ var automationVariables = [
   { name: 'QuotaIncrementGB', value: '25', description: 'GB to add when quota exceeds 90%' }
   { name: 'QuotaAlertThreshold', value: '95', description: 'Percentage threshold for quota alerts' }
   { name: 'StalenessThresholdDays', value: '180', description: 'Days of inactivity for staleness scoring' }
-  { name: 'TeamsWebhookUrl', value: '', description: 'Teams incoming webhook URL for notifications' }
   { name: 'NotificationEmail', value: '', description: 'Email for weekly summary and critical alerts' }
   { name: 'SendFromAddress', value: '', description: 'From address for Graph API email notifications (must be a licensed mailbox)' }
   { name: 'KeyVaultName', value: 'kv-csp-${clientCode}', description: 'Key Vault name for SPO credentials' }
@@ -73,6 +73,18 @@ resource variables 'Microsoft.Automation/automationAccounts/variables@2023-11-01
     }
   }
 ]
+
+// Sensitive variables — encrypted at rest (ISO 27001 A.8.24 — Use of cryptography)
+// TeamsWebhookUrl contains a secret token that grants posting access to a Teams channel
+resource teamsWebhookVar 'Microsoft.Automation/automationAccounts/variables@2023-11-01' = {
+  parent: automationAccount
+  name: 'TeamsWebhookUrl'
+  properties: {
+    value: '""'
+    description: 'Teams incoming webhook URL for notifications (encrypted — contains auth token)'
+    isEncrypted: true
+  }
+}
 
 // ResourceGroupName variable (uses Bicep function, can't be in the array)
 resource resourceGroupNameVar 'Microsoft.Automation/automationAccounts/variables@2023-11-01' = {

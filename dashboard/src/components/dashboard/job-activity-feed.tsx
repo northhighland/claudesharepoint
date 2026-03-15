@@ -8,7 +8,7 @@ import {
   Trash2,
   AlertTriangle,
 } from "lucide-react";
-import { formatBytes, cn, getStatusColor } from "@/lib/utils";
+import { formatBytes, cn, getStatusColor, clampPercent } from "@/lib/utils";
 import type { JobRun, JobType } from "@/lib/types";
 import { JOB_TYPE_DISPLAY_NAMES } from "@/lib/types";
 
@@ -145,7 +145,7 @@ export function JobActivityFeed({
             {displayJobs.map((job) => {
               const progress =
                 job.status === "Running" && job.totalSites > 0
-                  ? Math.round((job.processedSites / job.totalSites) * 100)
+                  ? clampPercent(Math.round((job.processedSites / job.totalSites) * 100))
                   : null;
 
               return (

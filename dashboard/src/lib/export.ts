@@ -38,8 +38,17 @@ export function formatValueForCSV(value: unknown, key: string): string {
   }
 
   // Escape strings for CSV
-  const str = String(value);
-  if (str.includes(",") || str.includes('"') || str.includes("\n")) {
+  let str = String(value);
+
+  // CSV Formula Injection protection (OWASP):
+  // Prefix dangerous characters that could trigger formula execution
+  // in spreadsheet applications (Excel, Google Sheets, LibreOffice).
+  // Characters: = + - @ TAB CR that start a cell value.
+  if (/^[=+\-@\t\r]/.test(str)) {
+    str = `'${str}`;
+  }
+
+  if (str.includes(",") || str.includes('"') || str.includes("\n") || str.includes("'")) {
     return `"${str.replace(/"/g, '""')}"`;
   }
   return str;

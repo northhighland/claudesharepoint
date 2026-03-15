@@ -27,8 +27,20 @@ const handler: AzureFunction = async function (
       return;
     }
 
+    // Validate dryRun is boolean if provided (prevent type confusion)
+    if (dryRun !== undefined && typeof dryRun !== "boolean") {
+      context.res = errorResponse("dryRun must be a boolean.", 400);
+      return;
+    }
+
     const isDryRun = dryRun ?? true;
-    const validBatchSize = batchSize && Number(batchSize) > 0 ? Number(batchSize) : undefined;
+
+    // Validate batchSize: must be a positive integer, capped at 500
+    // to prevent resource exhaustion (OWASP A04:2021 — Insecure Design)
+    const MAX_BATCH_SIZE = 500;
+    const validBatchSize = batchSize && Number.isInteger(Number(batchSize)) && Number(batchSize) > 0
+      ? Math.min(Number(batchSize), MAX_BATCH_SIZE)
+      : undefined;
 
     context.log.info(
       `[AUDIT] Runbook triggered: JobType=${jobType}, DryRun=${isDryRun}, BatchSize=${validBatchSize ?? "default"}, User=${principal.userDetails}`
