@@ -4,7 +4,8 @@ import { useState, useEffect } from "react";
 import { Save, Loader2 } from "lucide-react";
 import { usePolling } from "@/hooks/use-polling";
 import { fetchSettings, updateSettings } from "@/lib/api";
-import type { AppSettings, JobSchedule, JobType } from "@/lib/types";
+import type { AppSettings, JobSchedule, JobType, StaleSiteWeights, StaleSiteThresholds } from "@/lib/types";
+import { InfoTooltip } from "@/components/ui/info-tooltip";
 import { JOB_TYPE_DISPLAY_NAMES } from "@/lib/types";
 
 const DEFAULT_SCHEDULE: JobSchedule = {
@@ -24,6 +25,26 @@ const DAYS_OF_WEEK = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 export default function SettingsPage(): React.ReactElement {
   const { data: settings, isLoading, mutate } = usePolling("settings", fetchSettings, 0);
+  const DEFAULT_WEIGHTS: StaleSiteWeights = {
+    inactivityDays: 180,
+    inactivityWeight: 40,
+    noUsersDays: 90,
+    noUsersWeight: 25,
+    minFileCount: 10,
+    lowFilesWeight: 15,
+    minStorageMB: 100,
+    lowStorageWeight: 10,
+    minAgeYears: 2,
+    ageWeight: 10,
+  };
+
+  const DEFAULT_THRESHOLDS: StaleSiteThresholds = {
+    activeMax: 20,
+    lowActivityMax: 50,
+    dormantMax: 70,
+    archiveMax: 85,
+  };
+
   const [form, setForm] = useState<AppSettings>({
     expireAfterDays: 90,
     maxMajorVersions: 100,
@@ -36,6 +57,8 @@ export default function SettingsPage(): React.ReactElement {
       QuotaManager: { ...DEFAULT_SCHEDULE },
       StaleSiteDetector: { ...DEFAULT_SCHEDULE },
     },
+    staleSiteWeights: { ...DEFAULT_WEIGHTS },
+    staleSiteThresholds: { ...DEFAULT_THRESHOLDS },
   });
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -57,6 +80,18 @@ export default function SettingsPage(): React.ReactElement {
           }
         }
       }
+      // Parse stale site settings
+      let staleSiteWeights = DEFAULT_WEIGHTS;
+      let staleSiteThresholds = DEFAULT_THRESHOLDS;
+      const rawWeights = rawSettings.StaleSiteWeights;
+      if (rawWeights) {
+        try { staleSiteWeights = { ...DEFAULT_WEIGHTS, ...JSON.parse(rawWeights) }; } catch {}
+      }
+      const rawThresholds = rawSettings.StaleSiteThresholds;
+      if (rawThresholds) {
+        try { staleSiteThresholds = { ...DEFAULT_THRESHOLDS, ...JSON.parse(rawThresholds) }; } catch {}
+      }
+
       setForm((prev) => ({
         expireAfterDays: Number(settings.expireAfterDays) || prev.expireAfterDays,
         maxMajorVersions: Number(settings.maxMajorVersions) || prev.maxMajorVersions,
@@ -64,6 +99,8 @@ export default function SettingsPage(): React.ReactElement {
         teamsWebhookUrl: settings.teamsWebhookUrl ?? prev.teamsWebhookUrl,
         notificationEmail: settings.notificationEmail ?? prev.notificationEmail,
         schedules,
+        staleSiteWeights,
+        staleSiteThresholds,
       }));
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -78,6 +115,19 @@ export default function SettingsPage(): React.ReactElement {
     }
     if (form.quotaIncrementGB < 0.5 || form.quotaIncrementGB > 1000) {
       return "Quota Increment must be between 0.5 and 1,000 GB";
+    }
+    const totalWeight = form.staleSiteWeights.inactivityWeight +
+      form.staleSiteWeights.noUsersWeight +
+      form.staleSiteWeights.lowFilesWeight +
+      form.staleSiteWeights.lowStorageWeight +
+      form.staleSiteWeights.ageWeight;
+    if (totalWeight !== 100) {
+      return `Stale site scoring weights must sum to 100 (currently ${totalWeight})`;
+    }
+    if (form.staleSiteThresholds.activeMax >= form.staleSiteThresholds.lowActivityMax ||
+      form.staleSiteThresholds.lowActivityMax >= form.staleSiteThresholds.dormantMax ||
+      form.staleSiteThresholds.dormantMax >= form.staleSiteThresholds.archiveMax) {
+      return "Stale site thresholds must be in ascending order";
     }
     if (form.teamsWebhookUrl && !form.teamsWebhookUrl.startsWith("https://")) {
       return "Teams Webhook URL must use HTTPS";
@@ -98,12 +148,14 @@ export default function SettingsPage(): React.ReactElement {
     setSaving(true);
     setSaved(false);
     try {
-      // Flatten schedules into individual ScheduleXxx keys for the API
-      const { schedules, ...rest } = form;
+      // Flatten schedules and stale site config into API keys
+      const { schedules, staleSiteWeights, staleSiteThresholds, ...rest } = form;
       const payload: Record<string, string | number> = { ...rest };
       for (const jt of JOB_TYPES) {
         payload[`Schedule${jt}`] = JSON.stringify(schedules[jt]);
       }
+      payload.StaleSiteWeights = JSON.stringify(staleSiteWeights);
+      payload.StaleSiteThresholds = JSON.stringify(staleSiteThresholds);
       await updateSettings(payload as unknown as Partial<AppSettings>);
       mutate();
       setSaved(true);
@@ -243,6 +295,185 @@ export default function SettingsPage(): React.ReactElement {
               className="w-full max-w-xs rounded-lg border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
             />
           </div>
+        </div>
+
+        {/* Stale Site Detection — Scoring Weights */}
+        <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
+          <div className="flex items-center gap-2 mb-1">
+            <h2 className="text-lg font-semibold">Stale Site Detection</h2>
+            <InfoTooltip text="Configure how sites are scored for staleness. Weights must sum to 100. Higher weight = more impact on the final score. Adjust criteria thresholds to match your organization's activity patterns." />
+          </div>
+          <p className="mb-4 text-xs text-muted-foreground">
+            Scoring criteria and category thresholds — customize per organization
+          </p>
+
+          {/* Scoring Criteria */}
+          <h3 className="mb-3 text-sm font-medium text-foreground">Scoring Criteria</h3>
+          <div className="space-y-4 mb-6">
+            {/* Inactivity */}
+            <div className="grid gap-3 sm:grid-cols-2 rounded-lg border border-border bg-background p-3">
+              <div>
+                <label htmlFor="inactivityDays" className="block text-sm font-medium">No Activity (days)</label>
+                <p className="mb-1 text-[11px] text-muted-foreground">Site has no activity for this many days</p>
+                <input id="inactivityDays" type="number" min={30} max={730}
+                  value={form.staleSiteWeights.inactivityDays}
+                  onChange={(e) => setForm(f => ({ ...f, staleSiteWeights: { ...f.staleSiteWeights, inactivityDays: parseInt(e.target.value) || 0 } }))}
+                  className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                />
+              </div>
+              <div>
+                <label htmlFor="inactivityWeight" className="block text-sm font-medium">Weight (points)</label>
+                <p className="mb-1 text-[11px] text-muted-foreground">Score contribution (0-100)</p>
+                <input id="inactivityWeight" type="number" min={0} max={100}
+                  value={form.staleSiteWeights.inactivityWeight}
+                  onChange={(e) => setForm(f => ({ ...f, staleSiteWeights: { ...f.staleSiteWeights, inactivityWeight: parseInt(e.target.value) || 0 } }))}
+                  className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                />
+              </div>
+            </div>
+
+            {/* No Active Users */}
+            <div className="grid gap-3 sm:grid-cols-2 rounded-lg border border-border bg-background p-3">
+              <div>
+                <label htmlFor="noUsersDays" className="block text-sm font-medium">No Active Users (days)</label>
+                <p className="mb-1 text-[11px] text-muted-foreground">No users accessed the site in this period</p>
+                <input id="noUsersDays" type="number" min={7} max={365}
+                  value={form.staleSiteWeights.noUsersDays}
+                  onChange={(e) => setForm(f => ({ ...f, staleSiteWeights: { ...f.staleSiteWeights, noUsersDays: parseInt(e.target.value) || 0 } }))}
+                  className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                />
+              </div>
+              <div>
+                <label htmlFor="noUsersWeight" className="block text-sm font-medium">Weight (points)</label>
+                <p className="mb-1 text-[11px] text-muted-foreground">Score contribution (0-100)</p>
+                <input id="noUsersWeight" type="number" min={0} max={100}
+                  value={form.staleSiteWeights.noUsersWeight}
+                  onChange={(e) => setForm(f => ({ ...f, staleSiteWeights: { ...f.staleSiteWeights, noUsersWeight: parseInt(e.target.value) || 0 } }))}
+                  className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                />
+              </div>
+            </div>
+
+            {/* Low File Count */}
+            <div className="grid gap-3 sm:grid-cols-2 rounded-lg border border-border bg-background p-3">
+              <div>
+                <label htmlFor="minFileCount" className="block text-sm font-medium">Minimum Files</label>
+                <p className="mb-1 text-[11px] text-muted-foreground">Sites with fewer files are considered low-content</p>
+                <input id="minFileCount" type="number" min={1} max={1000}
+                  value={form.staleSiteWeights.minFileCount}
+                  onChange={(e) => setForm(f => ({ ...f, staleSiteWeights: { ...f.staleSiteWeights, minFileCount: parseInt(e.target.value) || 0 } }))}
+                  className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                />
+              </div>
+              <div>
+                <label htmlFor="lowFilesWeight" className="block text-sm font-medium">Weight (points)</label>
+                <p className="mb-1 text-[11px] text-muted-foreground">Score contribution (0-100)</p>
+                <input id="lowFilesWeight" type="number" min={0} max={100}
+                  value={form.staleSiteWeights.lowFilesWeight}
+                  onChange={(e) => setForm(f => ({ ...f, staleSiteWeights: { ...f.staleSiteWeights, lowFilesWeight: parseInt(e.target.value) || 0 } }))}
+                  className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                />
+              </div>
+            </div>
+
+            {/* Low Storage */}
+            <div className="grid gap-3 sm:grid-cols-2 rounded-lg border border-border bg-background p-3">
+              <div>
+                <label htmlFor="minStorageMB" className="block text-sm font-medium">Minimum Storage (MB)</label>
+                <p className="mb-1 text-[11px] text-muted-foreground">Sites using less storage are considered empty</p>
+                <input id="minStorageMB" type="number" min={1} max={10000}
+                  value={form.staleSiteWeights.minStorageMB}
+                  onChange={(e) => setForm(f => ({ ...f, staleSiteWeights: { ...f.staleSiteWeights, minStorageMB: parseInt(e.target.value) || 0 } }))}
+                  className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                />
+              </div>
+              <div>
+                <label htmlFor="lowStorageWeight" className="block text-sm font-medium">Weight (points)</label>
+                <p className="mb-1 text-[11px] text-muted-foreground">Score contribution (0-100)</p>
+                <input id="lowStorageWeight" type="number" min={0} max={100}
+                  value={form.staleSiteWeights.lowStorageWeight}
+                  onChange={(e) => setForm(f => ({ ...f, staleSiteWeights: { ...f.staleSiteWeights, lowStorageWeight: parseInt(e.target.value) || 0 } }))}
+                  className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                />
+              </div>
+            </div>
+
+            {/* Site Age */}
+            <div className="grid gap-3 sm:grid-cols-2 rounded-lg border border-border bg-background p-3">
+              <div>
+                <label htmlFor="minAgeYears" className="block text-sm font-medium">Minimum Age (years)</label>
+                <p className="mb-1 text-[11px] text-muted-foreground">Sites older than this get an age penalty</p>
+                <input id="minAgeYears" type="number" min={0.5} max={10} step={0.5}
+                  value={form.staleSiteWeights.minAgeYears}
+                  onChange={(e) => setForm(f => ({ ...f, staleSiteWeights: { ...f.staleSiteWeights, minAgeYears: parseFloat(e.target.value) || 0 } }))}
+                  className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                />
+              </div>
+              <div>
+                <label htmlFor="ageWeight" className="block text-sm font-medium">Weight (points)</label>
+                <p className="mb-1 text-[11px] text-muted-foreground">Score contribution (0-100)</p>
+                <input id="ageWeight" type="number" min={0} max={100}
+                  value={form.staleSiteWeights.ageWeight}
+                  onChange={(e) => setForm(f => ({ ...f, staleSiteWeights: { ...f.staleSiteWeights, ageWeight: parseInt(e.target.value) || 0 } }))}
+                  className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                />
+              </div>
+            </div>
+
+            {/* Weight sum indicator */}
+            {(() => {
+              const total = form.staleSiteWeights.inactivityWeight + form.staleSiteWeights.noUsersWeight +
+                form.staleSiteWeights.lowFilesWeight + form.staleSiteWeights.lowStorageWeight + form.staleSiteWeights.ageWeight;
+              return (
+                <div className={`rounded-lg px-3 py-2 text-sm font-medium ${total === 100 ? "bg-emerald-500/10 text-emerald-400" : "bg-red-500/10 text-red-400"}`}>
+                  Total weight: {total} / 100 {total !== 100 && "— must equal 100"}
+                </div>
+              );
+            })()}
+          </div>
+
+          {/* Category Thresholds */}
+          <h3 className="mb-3 text-sm font-medium text-foreground">Category Thresholds</h3>
+          <p className="mb-3 text-[11px] text-muted-foreground">
+            Score ranges that determine how sites are categorized. Sites scoring above the Archive threshold are recommended for deletion.
+          </p>
+          <div className="grid gap-3 sm:grid-cols-4">
+            <div>
+              <label htmlFor="activeMax" className="block text-sm font-medium text-emerald-400">Active (0 to)</label>
+              <input id="activeMax" type="number" min={1} max={99}
+                value={form.staleSiteThresholds.activeMax}
+                onChange={(e) => setForm(f => ({ ...f, staleSiteThresholds: { ...f.staleSiteThresholds, activeMax: parseInt(e.target.value) || 0 } }))}
+                className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+              />
+            </div>
+            <div>
+              <label htmlFor="lowActivityMax" className="block text-sm font-medium text-sky-400">Low Activity (to)</label>
+              <input id="lowActivityMax" type="number" min={1} max={99}
+                value={form.staleSiteThresholds.lowActivityMax}
+                onChange={(e) => setForm(f => ({ ...f, staleSiteThresholds: { ...f.staleSiteThresholds, lowActivityMax: parseInt(e.target.value) || 0 } }))}
+                className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+              />
+            </div>
+            <div>
+              <label htmlFor="dormantMax" className="block text-sm font-medium text-amber-400">Stale (to)</label>
+              <input id="dormantMax" type="number" min={1} max={99}
+                value={form.staleSiteThresholds.dormantMax}
+                onChange={(e) => setForm(f => ({ ...f, staleSiteThresholds: { ...f.staleSiteThresholds, dormantMax: parseInt(e.target.value) || 0 } }))}
+                className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+              />
+            </div>
+            <div>
+              <label htmlFor="archiveMax" className="block text-sm font-medium text-red-400">Archive (to)</label>
+              <input id="archiveMax" type="number" min={1} max={99}
+                value={form.staleSiteThresholds.archiveMax}
+                onChange={(e) => setForm(f => ({ ...f, staleSiteThresholds: { ...f.staleSiteThresholds, archiveMax: parseInt(e.target.value) || 0 } }))}
+                className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+              />
+            </div>
+          </div>
+          <p className="mt-2 text-[11px] text-muted-foreground">
+            Scores above {form.staleSiteThresholds.archiveMax} → Recommend Delete
+          </p>
         </div>
 
         {/* Notifications */}

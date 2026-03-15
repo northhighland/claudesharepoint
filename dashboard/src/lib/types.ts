@@ -162,6 +162,27 @@ export interface JobSchedule {
   timeUtc: string; // "02:00" format
 }
 
+export interface StaleSiteWeights {
+  inactivityDays: number;       // Days without activity to trigger (default: 180)
+  inactivityWeight: number;     // Score points for inactivity (default: 40)
+  noUsersDays: number;          // Days without active users (default: 90)
+  noUsersWeight: number;        // Score points for no users (default: 25)
+  minFileCount: number;         // Below this = low content (default: 10)
+  lowFilesWeight: number;       // Score points for low files (default: 15)
+  minStorageMB: number;         // Below this MB = low storage (default: 100)
+  lowStorageWeight: number;     // Score points for low storage (default: 10)
+  minAgeYears: number;          // Site older than this = age factor (default: 2)
+  ageWeight: number;            // Score points for age (default: 10)
+}
+
+export interface StaleSiteThresholds {
+  activeMax: number;            // 0 to this = Active (default: 20)
+  lowActivityMax: number;       // to this = Low Activity (default: 50)
+  dormantMax: number;           // to this = Dormant/Stale (default: 70)
+  archiveMax: number;           // to this = Recommend Archive (default: 85)
+  // 86-100 = Recommend Delete
+}
+
 export interface AppSettings {
   expireAfterDays: number;
   maxMajorVersions: number;
@@ -169,6 +190,8 @@ export interface AppSettings {
   teamsWebhookUrl: string;
   notificationEmail: string;
   schedules: Record<JobType, JobSchedule>;
+  staleSiteWeights: StaleSiteWeights;
+  staleSiteThresholds: StaleSiteThresholds;
 }
 
 export interface JobFilters {
