@@ -9,13 +9,25 @@ import { TopSitesList } from "@/components/quota/top-sites-list";
 import { DistributionChart } from "@/components/quota/distribution-chart";
 import { QuotaHeatmap } from "@/components/quota/quota-heatmap";
 import { QuotaHistory } from "@/components/quota/quota-history";
+import { QuotaHealthDonut } from "@/components/quota/quota-health-donut";
 import { ActiveJobBanner } from "@/components/jobs/active-job-banner";
 import { JobDetail } from "@/components/jobs/job-detail";
 import { TriggerModal } from "@/components/jobs/trigger-modal";
 import { ExportButton } from "@/components/ui/export-button";
-import type { JobRun } from "@/lib/types";
+import type { JobRun, QuotaStatus } from "@/lib/types";
 
 type FilterStatus = "all" | "Completed" | "Failed" | "Running";
+
+/** Deduplicate sites by URL (safety net — API should already handle this) */
+function dedupSites(sites: QuotaStatus[]): QuotaStatus[] {
+  const map = new Map<string, QuotaStatus>();
+  for (const site of sites) {
+    if (!map.has(site.siteUrl)) {
+      map.set(site.siteUrl, site);
+    }
+  }
+  return Array.from(map.values());
+}
 
 export default function QuotaPage(): React.ReactElement {
   const [statusFilter, setStatusFilter] = useState<FilterStatus>("all");
@@ -41,12 +53,12 @@ export default function QuotaPage(): React.ReactElement {
     (j) => statusFilter === "all" || j.status === statusFilter
   );
 
-  const sites = data?.sites ?? [];
+  // Deduplicate sites client-side as safety net
+  const sites = dedupSites(data?.sites ?? []);
   const distribution = data?.distribution ?? [];
 
   const critical = sites.filter((s) => s.percentUsed >= 95).length;
   const warning = sites.filter((s) => s.percentUsed >= 85 && s.percentUsed < 95).length;
-  const healthy = sites.filter((s) => s.percentUsed < 70).length;
   const totalUsedBytes = sites.reduce((sum, s) => sum + s.usedBytes, 0);
 
   if (selectedJob) {
@@ -55,6 +67,7 @@ export default function QuotaPage(): React.ReactElement {
 
   return (
     <div className="space-y-8">
+      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="font-display text-2xl font-bold">Quota Management</h1>
@@ -92,21 +105,40 @@ export default function QuotaPage(): React.ReactElement {
       <div className="grid gap-4 sm:grid-cols-4">
         <div className="glass-card rounded-xl p-4 animate-fade-in-up">
           <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Total Sites</p>
-          <p className="mt-1 font-mono text-2xl font-bold">{isLoading ? "--" : sites.length}</p>
+          <p className="mt-1 font-mono text-2xl font-bold">{isLoading ? "--" : sites.length.toLocaleString()}</p>
         </div>
         <div className="glass-card rounded-xl p-4 animate-fade-in-up-delay-1">
           <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Critical (&gt;95%)</p>
-          <p className="mt-1 font-mono text-2xl font-bold text-red-400">{isLoading ? "--" : critical}</p>
+          <p className={cn(
+            "mt-1 font-mono text-2xl font-bold",
+            !isLoading && critical > 0 ? "text-red-400" : "text-muted-foreground"
+          )}>
+            {isLoading ? "--" : critical}
+          </p>
         </div>
         <div className="glass-card rounded-xl p-4 animate-fade-in-up-delay-2">
           <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Warning (85-95%)</p>
-          <p className="mt-1 font-mono text-2xl font-bold text-amber-400">{isLoading ? "--" : warning}</p>
+          <p className={cn(
+            "mt-1 font-mono text-2xl font-bold",
+            !isLoading && warning > 0 ? "text-amber-400" : "text-muted-foreground"
+          )}>
+            {isLoading ? "--" : warning}
+          </p>
         </div>
         <div className="glass-card rounded-xl p-4 animate-fade-in-up-delay-3">
           <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Total Storage Used</p>
           <p className="mt-1 font-mono text-2xl font-bold text-primary">{isLoading ? "--" : formatBytes(totalUsedBytes)}</p>
         </div>
       </div>
+
+      {/* Two-column: Donut + Distribution */}
+      <div className="grid gap-6 lg:grid-cols-2">
+        <QuotaHealthDonut sites={sites} isLoading={isLoading} />
+        <DistributionChart data={distribution} isLoading={isLoading} />
+      </div>
+
+      {/* Heatmap — full width */}
+      <QuotaHeatmap sites={sites} isLoading={isLoading} />
 
       {/* Top 20 lists side by side */}
       <div className="grid gap-6 lg:grid-cols-2">
@@ -123,12 +155,6 @@ export default function QuotaPage(): React.ReactElement {
           limit={20}
         />
       </div>
-
-      {/* Distribution chart */}
-      <DistributionChart data={distribution} isLoading={isLoading} />
-
-      {/* Heatmap */}
-      <QuotaHeatmap sites={sites} isLoading={isLoading} />
 
       {/* Auto-increase history */}
       <QuotaHistory sites={sites} isLoading={isLoading} />
