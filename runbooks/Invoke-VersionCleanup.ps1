@@ -82,6 +82,27 @@ if (-not $moduleLoaded) {
     catch { Write-Output "[INFO] SpaceAgent module not available — using inline helpers" }
 }
 
+# Inline fallback for Write-ErrorResult if module not loaded
+if (-not $moduleLoaded -or -not (Get-Command Write-ErrorResult -ErrorAction SilentlyContinue)) {
+    function Write-ErrorResult {
+        param($ErrorRecord, [string]$Operation = "Unknown")
+        $msg = if ($ErrorRecord -is [System.Management.Automation.ErrorRecord]) { $ErrorRecord.Exception.Message } else { [string]$ErrorRecord }
+        $errorCode = "UNKNOWN_ERROR"; $errorSource = "Unknown"; $isRetryable = $false
+        if ($msg -match "401|Unauthorized|token.*expired") { $errorCode = "AUTH_FAILURE"; $errorSource = "PnP"; $isRetryable = $true }
+        elseif ($msg -match "403|Access denied|Forbidden") { $errorCode = "ACCESS_DENIED"; $errorSource = "PnP" }
+        elseif ($msg -match "429|throttl|Too Many Requests") { $errorCode = "THROTTLE_429"; $errorSource = "Graph"; $isRetryable = $true }
+        elseif ($msg -match "timeout|timed out|operation.*expired|TaskCanceledException") { $errorCode = "PNP_TIMEOUT"; $errorSource = "PnP"; $isRetryable = $true }
+        elseif ($msg -match "list view threshold|exceeds the list view") { $errorCode = "LIST_THRESHOLD"; $errorSource = "PnP" }
+        elseif ($msg -match "Key Vault|SecretNotFound|VaultNotFound") { $errorCode = "KEYVAULT_ACCESS"; $errorSource = "KeyVault" }
+        elseif ($msg -match "module.*not found|Import-Module|CommandNotFoundException") { $errorCode = "MODULE_MISSING"; $errorSource = "Orchestrator" }
+        elseif ($msg -match "table.*not found|TableNotFound|storage") { $errorCode = "TABLE_STORAGE_ERROR"; $errorSource = "TableStorage"; $isRetryable = $true }
+        elseif ($msg -match "503|504|Service Unavailable") { $errorCode = "SERVICE_UNAVAILABLE"; $errorSource = "Graph"; $isRetryable = $true }
+        elseif ($msg -match "site.*not found|404") { $errorCode = "SITE_NOT_FOUND"; $errorSource = "PnP" }
+        elseif ($msg -match "Connect-PnPOnline|connection|disconnect") { $errorCode = "CONNECTION_FAILURE"; $errorSource = "PnP"; $isRetryable = $true }
+        return @{ ErrorCode = $errorCode; ErrorSource = $errorSource; ErrorMessage = $msg.Substring(0, [Math]::Min($msg.Length, 500)); IsRetryable = $isRetryable; Operation = $Operation }
+    }
+}
+
 # Authenticate with managed identity
 Connect-AzAccount -Identity | Out-Null
 Write-Output "[INFO] Authenticated with managed identity"
@@ -262,7 +283,7 @@ function Get-FoldersRecursive {
                     }
                 }
             } catch {
-                # Continue on folder-level errors
+                Write-Warning "      Subfolder access failed ($folderPath/$($child.Name)): $($_.Exception.Message)"
             }
         }
     }
@@ -303,6 +324,8 @@ function Write-TableResult {
         DryRun              = $Result.DryRun
         Status              = $Result.Status
         ErrorMessage        = $Result.ErrorMessage
+        ErrorCode           = $Result.ErrorCode
+        ErrorSource         = $Result.ErrorSource
         CompletedAt         = (Get-Date -Format "o")
     }
 
@@ -352,6 +375,8 @@ foreach ($siteUrl in $sites) {
         DryRun             = [bool]$DryRun
         Status             = "Success"
         ErrorMessage       = ""
+        ErrorCode          = ""
+        ErrorSource        = ""
     }
 
     Write-Output ""
@@ -401,6 +426,7 @@ foreach ($siteUrl in $sites) {
         Write-Output "  PnP libraries: $($pnpLibraries.Count)"
 
         # --- Process each library ---
+        $libraryErrors = @()
         foreach ($library in $pnpLibraries) {
             $result.LibrariesProcessed++
             Write-Output "    Library: $($library.Title)"
@@ -480,7 +506,7 @@ foreach ($siteUrl in $sites) {
                                     }
                                 }
                             } catch {
-                                # Skip files where version enumeration fails
+                                Write-Warning "      Version enum failed for $fileName : $($_.Exception.Message)"
                             }
                         }
                     } catch {
@@ -491,8 +517,19 @@ foreach ($siteUrl in $sites) {
                     }
                 }
             } catch {
+                $libErr = Write-ErrorResult -ErrorRecord $_ -Operation "Library:$($library.Title)"
+                $libraryErrors += $libErr
                 Write-Warning "    Library error ($($library.Title)): $($_.Exception.Message)"
             }
+        }
+
+        # --- Check for partial library failures ---
+        if ($libraryErrors.Count -gt 0) {
+            $result.Status = "Partial"
+            $errCodes = ($libraryErrors | ForEach-Object { $_.ErrorCode }) -join ", "
+            $result.ErrorMessage = "Library errors: $errCodes"
+            $result.ErrorCode = ($libraryErrors[0]).ErrorCode
+            $result.ErrorSource = ($libraryErrors[0]).ErrorSource
         }
 
         # --- Apply site-level version policy (non-DryRun only) ---
@@ -519,7 +556,10 @@ foreach ($siteUrl in $sites) {
     } catch {
         $result.Status = "Error"
         $result.ErrorMessage = $_.Exception.Message
-        Write-Output "  ERROR: $($_.Exception.Message)"
+        $errInfo = Write-ErrorResult -ErrorRecord $_ -Operation "VersionCleanup"
+        $result.ErrorCode = $errInfo.ErrorCode
+        $result.ErrorSource = $errInfo.ErrorSource
+        Write-Output "  ERROR [$($errInfo.ErrorCode)]: $($_.Exception.Message)"
     } finally {
         # Disconnect PnP
         try { Disconnect-PnPOnline -ErrorAction SilentlyContinue } catch {}

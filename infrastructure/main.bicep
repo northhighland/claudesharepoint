@@ -23,12 +23,20 @@ param adminUsers string = ''
 @maxValue(730)
 param logRetentionDays int = 30
 
+@description('Resource tags for cost management and compliance')
+param tags object = {
+  project: 'claudesharepoint'
+  managedBy: 'bicep'
+  environment: 'production'
+}
+
 // Key Vault
 var keyVaultName = 'kv-csp-${clientCode}'
 
 resource keyVault 'Microsoft.KeyVault/vaults@2023-07-01' = {
   name: keyVaultName
   location: location
+  tags: tags
   properties: {
     sku: {
       family: 'A'
@@ -38,6 +46,7 @@ resource keyVault 'Microsoft.KeyVault/vaults@2023-07-01' = {
     enableRbacAuthorization: true
     enableSoftDelete: true
     softDeleteRetentionInDays: 90
+    enablePurgeProtection: true
     enabledForDeployment: false
     enabledForDiskEncryption: false
     enabledForTemplateDeployment: false
@@ -48,12 +57,28 @@ resource keyVault 'Microsoft.KeyVault/vaults@2023-07-01' = {
   }
 }
 
+// Diagnostic settings for Key Vault
+resource keyVaultDiagnostics 'Microsoft.Insights/diagnosticSettings@2021-05-01-preview' = if (enableLogAnalytics) {
+  name: '${keyVaultName}-diag'
+  scope: keyVault
+  properties: {
+    workspaceId: logAnalytics.id
+    logs: [
+      { categoryGroup: 'allLogs', enabled: true }
+    ]
+    metrics: [
+      { category: 'AllMetrics', enabled: true }
+    ]
+  }
+}
+
 // Log Analytics workspace
 var logAnalyticsName = 'log-csp-${clientCode}'
 
 resource logAnalytics 'Microsoft.OperationalInsights/workspaces@2023-09-01' = if (enableLogAnalytics) {
   name: logAnalyticsName
   location: location
+  tags: tags
   properties: {
     sku: {
       name: 'PerGB2018'
@@ -70,6 +95,7 @@ module storage 'modules/storage-account.bicep' = if (enableStorageAccount) {
   params: {
     clientCode: clientCode
     location: location
+    tags: tags
   }
 }
 
@@ -80,6 +106,7 @@ module automation 'modules/automation-account.bicep' = {
     clientCode: clientCode
     location: location
     logAnalyticsWorkspaceId: enableLogAnalytics ? logAnalytics.id : ''
+    tags: tags
   }
 }
 
@@ -90,6 +117,7 @@ module staticWebApp 'modules/static-web-app.bicep' = {
     clientCode: clientCode
     // SWA only available in: westus2, centralus, eastus2, westeurope, eastasia
     location: 'eastus2'
+    tags: tags
   }
 }
 
@@ -100,6 +128,7 @@ module functionApp 'modules/function-app.bicep' = {
     clientCode: clientCode
     location: location
     adminUsers: adminUsers
+    tags: tags
   }
 }
 

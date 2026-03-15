@@ -28,6 +28,8 @@ export interface VersionCleanupResultEntity extends TableEntity {
   DryRun?: boolean;
   Status: string;
   ErrorMessage?: string;
+  ErrorCode?: string;
+  ErrorSource?: string;
   ProcessedAt?: string;
   CompletedAt?: string;
 }
@@ -45,6 +47,8 @@ export interface StaleSiteEntity extends TableEntity {
   AdminAction?: string;
   AdminActionDate?: string;
   AdminActionBy?: string;
+  ErrorCode?: string;
+  ErrorSource?: string;
 }
 
 export interface QuotaStatusEntity extends TableEntity {
@@ -57,6 +61,8 @@ export interface QuotaStatusEntity extends TableEntity {
   AutoIncreasedGB?: number;
   AutoIncreaseDate?: string;
   Status: string;
+  ErrorCode?: string;
+  ErrorSource?: string;
 }
 
 export interface RecycleBinResultEntity extends TableEntity {
@@ -66,6 +72,8 @@ export interface RecycleBinResultEntity extends TableEntity {
   SpaceReclaimedMB: number;
   Status: string;
   ErrorMessage?: string;
+  ErrorCode?: string;
+  ErrorSource?: string;
   ProcessedAt: string;
 }
 
@@ -91,7 +99,7 @@ export interface StaleSiteActionRequest {
 
 export type SettingsMap = Record<string, string>;
 
-export type JobStatus = "Running" | "Completed" | "Failed" | "Stopped" | "Stalled";
+export type JobStatus = "Running" | "Completed" | "Failed" | "Stopped" | "Stalled" | "PartialComplete";
 
 export const VALID_JOB_TYPES = [
   "VersionCleanup",

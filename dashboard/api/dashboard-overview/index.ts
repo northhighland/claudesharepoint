@@ -45,6 +45,11 @@ const handler: AzureFunction = async function (
   try {
     // Support ?range=30d|90d|all (default: all)
     const range = req.query.range ?? "all";
+    const VALID_RANGES = ["30d", "90d", "all"] as const;
+    if (!VALID_RANGES.includes(range as typeof VALID_RANGES[number])) {
+      context.res = errorResponse(`Invalid range. Must be one of: ${VALID_RANGES.join(", ")}`, 400);
+      return;
+    }
     let dateFilter: string | undefined;
 
     if (range === "30d" || range === "90d") {

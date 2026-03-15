@@ -12,17 +12,22 @@ const handler = async function (context, req) {
             context.res = (0, response_1.errorResponse)("Request body must include jobType.", 400);
             return;
         }
-        const { jobType, dryRun } = body;
+        const { jobType, dryRun, batchSize } = body;
         if (!types_1.VALID_JOB_TYPES.includes(jobType)) {
             context.res = (0, response_1.errorResponse)(`Invalid jobType. Must be one of: ${types_1.VALID_JOB_TYPES.join(", ")}`, 400);
             return;
         }
         const isDryRun = dryRun ?? true;
-        context.log.info(`[AUDIT] Runbook triggered: JobType=${jobType}, DryRun=${isDryRun}, User=${principal.userDetails}`);
-        const jobId = await (0, automation_client_1.triggerRunbook)("Invoke-Orchestrator", {
+        const validBatchSize = batchSize && Number(batchSize) > 0 ? Number(batchSize) : undefined;
+        context.log.info(`[AUDIT] Runbook triggered: JobType=${jobType}, DryRun=${isDryRun}, BatchSize=${validBatchSize ?? "default"}, User=${principal.userDetails}`);
+        const params = {
             JobType: jobType,
             DryRun: String(isDryRun),
-        });
+        };
+        if (validBatchSize) {
+            params.BatchSize = String(validBatchSize);
+        }
+        const jobId = await (0, automation_client_1.triggerRunbook)("Invoke-Orchestrator", params);
         context.res = (0, response_1.jsonResponse)({
             jobId,
             message: `Job ${jobType} triggered successfully${isDryRun ? " (dry run)" : ""}.`,
@@ -30,7 +35,8 @@ const handler = async function (context, req) {
     }
     catch (error) {
         context.log.error("jobs-trigger error:", error);
-        context.res = (0, response_1.errorResponse)("Failed to trigger job. Contact your administrator.");
+        context.log.error("Failed to trigger job:", error);
+        context.res = (0, response_1.errorResponse)("Failed to trigger job. Please try again or contact support.");
     }
 };
 exports.default = handler;

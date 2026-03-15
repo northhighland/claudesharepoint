@@ -1179,6 +1179,106 @@ function Set-LastAssessmentTime {
 
 #endregion
 
+#region Error Classification
+
+function Write-ErrorResult {
+    <#
+    .SYNOPSIS
+        Classify an error and return structured error info for Table Storage
+    .PARAMETER ErrorRecord
+        The PowerShell error record to classify
+    .PARAMETER Operation
+        What operation was being attempted (e.g., "VersionCleanup", "FolderDiscovery")
+    .OUTPUTS
+        Hashtable with ErrorCode, ErrorSource, ErrorMessage, IsRetryable
+    #>
+    [CmdletBinding()]
+    [OutputType([hashtable])]
+    param(
+        [Parameter(Mandatory = $true)]
+        $ErrorRecord,
+
+        [string]$Operation = "Unknown"
+    )
+
+    $msg = if ($ErrorRecord -is [System.Management.Automation.ErrorRecord]) {
+        $ErrorRecord.Exception.Message
+    } else {
+        [string]$ErrorRecord
+    }
+
+    # Classify by error message pattern
+    $errorCode = "UNKNOWN_ERROR"
+    $errorSource = "Unknown"
+    $isRetryable = $false
+
+    if ($msg -match "401|Unauthorized|token.*expired") {
+        $errorCode = "AUTH_FAILURE"
+        $errorSource = "PnP"
+        $isRetryable = $true
+    }
+    elseif ($msg -match "403|Access denied|Forbidden") {
+        $errorCode = "ACCESS_DENIED"
+        $errorSource = "PnP"
+        $isRetryable = $false
+    }
+    elseif ($msg -match "429|throttl|Too Many Requests") {
+        $errorCode = "THROTTLE_429"
+        $errorSource = "Graph"
+        $isRetryable = $true
+    }
+    elseif ($msg -match "timeout|timed out|operation.*expired|TaskCanceledException") {
+        $errorCode = "PNP_TIMEOUT"
+        $errorSource = "PnP"
+        $isRetryable = $true
+    }
+    elseif ($msg -match "list view threshold|exceeds the list view") {
+        $errorCode = "LIST_THRESHOLD"
+        $errorSource = "PnP"
+        $isRetryable = $false
+    }
+    elseif ($msg -match "Key Vault|SecretNotFound|VaultNotFound") {
+        $errorCode = "KEYVAULT_ACCESS"
+        $errorSource = "KeyVault"
+        $isRetryable = $false
+    }
+    elseif ($msg -match "module.*not found|Import-Module|CommandNotFoundException") {
+        $errorCode = "MODULE_MISSING"
+        $errorSource = "Orchestrator"
+        $isRetryable = $false
+    }
+    elseif ($msg -match "table.*not found|TableNotFound|storage") {
+        $errorCode = "TABLE_STORAGE_ERROR"
+        $errorSource = "TableStorage"
+        $isRetryable = $true
+    }
+    elseif ($msg -match "503|504|Service Unavailable") {
+        $errorCode = "SERVICE_UNAVAILABLE"
+        $errorSource = "Graph"
+        $isRetryable = $true
+    }
+    elseif ($msg -match "site.*not found|404") {
+        $errorCode = "SITE_NOT_FOUND"
+        $errorSource = "PnP"
+        $isRetryable = $false
+    }
+    elseif ($msg -match "Connect-PnPOnline|connection|disconnect") {
+        $errorCode = "CONNECTION_FAILURE"
+        $errorSource = "PnP"
+        $isRetryable = $true
+    }
+
+    return @{
+        ErrorCode    = $errorCode
+        ErrorSource  = $errorSource
+        ErrorMessage = $msg.Substring(0, [Math]::Min($msg.Length, 500))
+        IsRetryable  = $isRetryable
+        Operation    = $Operation
+    }
+}
+
+#endregion
+
 # Export public functions
 Export-ModuleMember -Function @(
     # Authentication
@@ -1207,4 +1307,6 @@ Export-ModuleMember -Function @(
     # Configuration
     'Get-SpaceAgentConfig'
     'Set-LastAssessmentTime'
+    # Error Classification
+    'Write-ErrorResult'
 )

@@ -16,7 +16,8 @@ export type JobStatus =
   | "Running"
   | "Completed"
   | "Failed"
-  | "Cancelled";
+  | "Cancelled"
+  | "PartialComplete";
 
 export interface JobRun {
   partitionKey: string;
@@ -56,6 +57,8 @@ export interface VersionCleanupResult {
   librariesProcessed: number;
   isDryRun: boolean;
   errorMessage?: string;
+  errorCode?: string;
+  errorSource?: string;
   processedAt: string;
 }
 
@@ -72,6 +75,9 @@ export interface QuotaStatus {
   newQuotaBytes?: number;
   increasedAt?: string;
   lastCheckedAt: string;
+  errorCode?: string;
+  errorSource?: string;
+  errorMessage?: string;
 }
 
 export interface StaleSiteRecommendation {
@@ -89,6 +95,8 @@ export interface StaleSiteRecommendation {
   adminAction?: "Keep" | "Archive" | "Delete" | null;
   actionDate?: string;
   analyzedAt: string;
+  errorCode?: string;
+  errorSource?: string;
 }
 
 export interface RecycleBinResult {
@@ -101,6 +109,8 @@ export interface RecycleBinResult {
   itemsDeleted: number;
   spaceReclaimedBytes: number;
   errorMessage?: string;
+  errorCode?: string;
+  errorSource?: string;
   processedAt: string;
 }
 
