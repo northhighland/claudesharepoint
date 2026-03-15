@@ -39,7 +39,7 @@ jobs:
               - 'dashboard/public/**'
               - 'dashboard/package*.json'
               - 'dashboard/next.config.mjs'
-              - 'dashboard/staticwebapp.config.json'
+              - 'dashboard/public/staticwebapp.config.json'
             infra:
               - 'infrastructure/**'
 
