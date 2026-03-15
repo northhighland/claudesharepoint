@@ -57,8 +57,8 @@ export default function QuotaPage(): React.ReactElement {
   const sites = dedupSites(data?.sites ?? []);
   const distribution = data?.distribution ?? [];
 
-  const critical = sites.filter((s) => s.percentUsed >= 95).length;
-  const warning = sites.filter((s) => s.percentUsed >= 85 && s.percentUsed < 95).length;
+  const critical = sites.filter((s) => s.percentUsed >= 90).length;
+  const warning = sites.filter((s) => s.percentUsed >= 80 && s.percentUsed < 90).length;
   const totalUsedBytes = sites.reduce((sum, s) => sum + s.usedBytes, 0);
 
   if (selectedJob) {
@@ -108,7 +108,7 @@ export default function QuotaPage(): React.ReactElement {
           <p className="mt-1 font-mono text-2xl font-bold">{isLoading ? "--" : sites.length.toLocaleString()}</p>
         </div>
         <div className="glass-card rounded-xl p-4 animate-fade-in-up-delay-1">
-          <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Critical (&gt;95%)</p>
+          <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Critical (&gt;90%)</p>
           <p className={cn(
             "mt-1 font-mono text-2xl font-bold",
             !isLoading && critical > 0 ? "text-red-400" : "text-muted-foreground"
@@ -117,7 +117,7 @@ export default function QuotaPage(): React.ReactElement {
           </p>
         </div>
         <div className="glass-card rounded-xl p-4 animate-fade-in-up-delay-2">
-          <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Warning (85-95%)</p>
+          <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Warning (80-90%)</p>
           <p className={cn(
             "mt-1 font-mono text-2xl font-bold",
             !isLoading && warning > 0 ? "text-amber-400" : "text-muted-foreground"

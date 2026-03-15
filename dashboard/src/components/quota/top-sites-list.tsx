@@ -17,9 +17,9 @@ function getSeverityColor(percent: number): {
   rank: string;
   text: string;
 } {
-  if (percent >= 95) return { bar: "bg-red-500/60", rank: "bg-red-500/20 text-red-400", text: "text-red-400" };
+  if (percent >= 90) return { bar: "bg-red-500/60", rank: "bg-red-500/20 text-red-400", text: "text-red-400" };
   if (percent >= 85) return { bar: "bg-orange-500/60", rank: "bg-orange-500/20 text-orange-400", text: "text-orange-400" };
-  if (percent >= 70) return { bar: "bg-amber-500/60", rank: "bg-amber-500/20 text-amber-400", text: "text-amber-400" };
+  if (percent >= 80) return { bar: "bg-yellow-500/60", rank: "bg-yellow-500/20 text-yellow-400", text: "text-yellow-400" };
   return { bar: "bg-emerald-500/60", rank: "bg-emerald-500/20 text-emerald-400", text: "text-emerald-400" };
 }
 

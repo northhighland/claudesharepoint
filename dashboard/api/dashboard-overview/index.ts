@@ -119,7 +119,7 @@ const handler: AzureFunction = async function (
       }
       const uniqueQuotaSites = Array.from(quotaSiteMap.values());
       if (uniqueQuotaSites.length > 0) {
-        const healthySites = uniqueQuotaSites.filter(s => (s.PercentUsed ?? 0) < 85).length;
+        const healthySites = uniqueQuotaSites.filter(s => (s.PercentUsed ?? 0) < 80).length;
         quotaHealthPercent = Math.round((healthySites / uniqueQuotaSites.length) * 100);
       }
     } catch {

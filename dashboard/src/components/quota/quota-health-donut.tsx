@@ -9,10 +9,10 @@ interface QuotaHealthDonutProps {
 }
 
 const SEGMENTS = [
-  { label: "Healthy", color: "#10b981", min: 0, max: 70 },
-  { label: "Warning", color: "#f59e0b", min: 70, max: 85 },
-  { label: "High", color: "#f97316", min: 85, max: 95 },
-  { label: "Critical", color: "#ef4444", min: 95, max: 101 },
+  { label: "Healthy", color: "#10b981", min: 0, max: 80 },
+  { label: "Warning", color: "#eab308", min: 80, max: 85 },
+  { label: "High", color: "#f97316", min: 85, max: 90 },
+  { label: "Critical", color: "#ef4444", min: 90, max: 101 },
 ];
 
 interface SegmentData {
