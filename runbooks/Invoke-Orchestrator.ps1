@@ -129,6 +129,101 @@ function Get-StorageToken {
     return $tokenObj.Token
 }
 
+function Merge-TableEntity {
+    <#
+    .SYNOPSIS
+        Merges (partial update) an entity in Azure Table Storage via REST API.
+        Only updates the specified properties, leaving others unchanged.
+    #>
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)] [string]$StorageAccountName,
+        [Parameter(Mandatory)] [string]$TableName,
+        [Parameter(Mandatory)] [string]$PartitionKey,
+        [Parameter(Mandatory)] [string]$RowKey,
+        [Parameter(Mandatory)] [hashtable]$Properties
+    )
+
+    $token = Get-StorageToken
+    $encodedPK = [Uri]::EscapeDataString($PartitionKey)
+    $encodedRK = [Uri]::EscapeDataString($RowKey)
+    $uri = "https://${StorageAccountName}.table.core.windows.net/${TableName}(PartitionKey='${encodedPK}',RowKey='${encodedRK}')"
+
+    $body = @{}
+    foreach ($key in $Properties.Keys) {
+        $body[$key] = $Properties[$key]
+    }
+
+    $headers = @{
+        Authorization    = "Bearer $token"
+        'Content-Type'   = 'application/json'
+        'x-ms-version'   = '2020-12-06'
+        'x-ms-date'      = (Get-Date).ToUniversalTime().ToString('R')
+        'If-Match'       = '*'
+        Accept           = 'application/json;odata=nometadata'
+    }
+
+    Invoke-RestMethod -Uri $uri -Method Merge -Headers $headers -Body ($body | ConvertTo-Json -Depth 5 -Compress) | Out-Null
+}
+
+function Resolve-StaleJobs {
+    <#
+    .SYNOPSIS
+        Finds any previous jobs for the same JobType stuck as "Running" and marks them "Stopped".
+        This handles the case where the orchestrator was killed externally (e.g., via Azure portal
+        or az rest stop) and the catch block never executed.
+    #>
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)] [string]$StorageAccountName,
+        [Parameter(Mandatory)] [string]$JobType,
+        [Parameter(Mandatory)] [string]$CurrentRunId
+    )
+
+    $token = Get-StorageToken
+    $filter = "PartitionKey eq '$JobType' and Status eq 'Running' and RowKey ne '$CurrentRunId'"
+    $encodedFilter = [Uri]::EscapeDataString($filter)
+    $uri = "https://${StorageAccountName}.table.core.windows.net/JobRuns()?`$filter=${encodedFilter}"
+
+    $headers = @{
+        Authorization  = "Bearer $token"
+        'x-ms-version' = '2020-12-06'
+        'x-ms-date'    = (Get-Date).ToUniversalTime().ToString('R')
+        Accept         = 'application/json;odata=nometadata'
+    }
+
+    try {
+        $response = Invoke-RestMethod -Uri $uri -Method Get -Headers $headers
+        $staleJobs = $response.value
+    }
+    catch {
+        Write-Warning "Failed to query for stale jobs: $($_.Exception.Message)"
+        return
+    }
+
+    if (-not $staleJobs -or $staleJobs.Count -eq 0) {
+        Write-Output "No stale Running jobs found for $JobType"
+        return
+    }
+
+    Write-Output "Found $($staleJobs.Count) stale Running job(s) for $JobType — marking as Stopped"
+
+    foreach ($job in $staleJobs) {
+        try {
+            Merge-TableEntity -StorageAccountName $StorageAccountName `
+                -TableName 'JobRuns' -PartitionKey $JobType -RowKey $job.RowKey `
+                -Properties @{
+                    Status    = 'Stopped'
+                    UpdatedAt = (Get-Date).ToString("o")
+                }
+            Write-Output "  Marked $JobType/$($job.RowKey) as Stopped (was stale Running)"
+        }
+        catch {
+            Write-Warning "  Failed to stop stale job $($job.RowKey): $($_.Exception.Message)"
+        }
+    }
+}
+
 function Write-TableEntity {
     <#
     .SYNOPSIS
@@ -185,7 +280,7 @@ function Update-JobRun {
         [Parameter(Mandatory)] [string]$StorageAccountName,
         [Parameter(Mandatory)] [string]$RunId,
         [Parameter(Mandatory)] [string]$JobType,
-        [Parameter(Mandatory)] [ValidateSet('Running', 'Completed', 'Failed', 'PartialComplete')] [string]$Status,
+        [Parameter(Mandatory)] [ValidateSet('Running', 'Completed', 'Failed', 'PartialComplete', 'Stopped')] [string]$Status,
         [int]$TotalSites = 0,
         [int]$TotalWaves = 0,
         [int]$CompletedWaves = 0,
@@ -516,6 +611,16 @@ try {
 }
 catch {
     Write-Warning "Failed to create JobRun record: $($_.Exception.Message)"
+}
+
+# Mark any previous Running jobs for this JobType as Stopped
+# (handles case where orchestrator was killed externally and catch block never ran)
+try {
+    Resolve-StaleJobs -StorageAccountName $StorageAccountName `
+        -JobType $JobType -CurrentRunId $runId
+}
+catch {
+    Write-Warning "Failed to resolve stale jobs: $($_.Exception.Message)"
 }
 
 #endregion
