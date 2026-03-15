@@ -52,7 +52,8 @@ param(
     [Parameter(Mandatory = $false)]
     [int]$MaxMajorVersions = 100,
 
-    [switch]$DryRun
+    [Parameter(Mandatory = $false)]
+    [bool]$DryRun = $false
 )
 
 # ---------------------------------------------------------------------------

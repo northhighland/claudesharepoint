@@ -52,7 +52,8 @@ param(
     [Parameter(Mandatory = $false)]
     [int]$AlertThreshold = 95,
 
-    [switch]$DryRun
+    [Parameter(Mandatory = $false)]
+    [bool]$DryRun = $false
 )
 
 # ---------------------------------------------------------------------------
