@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { Loader2 } from "lucide-react";
-import { cn, formatDate, formatDuration, getStatusColor } from "@/lib/utils";
+import { cn, formatDate, formatDuration, getStatusColor, clampPercent } from "@/lib/utils";
 import { useNow } from "@/hooks/use-now";
 import type { JobRun } from "@/lib/types";
 import { JOB_TYPE_DISPLAY_NAMES } from "@/lib/types";
@@ -20,10 +20,11 @@ export function ActiveJobBanner({ jobs }: ActiveJobBannerProps): React.ReactElem
   return (
     <div className="space-y-3">
       {runningJobs.map((job) => {
-        const progress =
+        const progress = clampPercent(
           job.totalSites > 0
             ? Math.round((job.processedSites / job.totalSites) * 100)
-            : 0;
+            : 0
+        );
         const elapsed = now - new Date(job.startedAt).getTime();
 
         return (

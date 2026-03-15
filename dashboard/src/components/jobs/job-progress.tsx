@@ -1,6 +1,6 @@
 "use client";
 
-import { cn } from "@/lib/utils";
+import { cn, clampPercent } from "@/lib/utils";
 import type { JobRun } from "@/lib/types";
 
 interface JobProgressProps {
@@ -14,7 +14,7 @@ export function JobProgress({ job, compact = false }: JobProgressProps): React.R
   const succeeded = job.jobsSucceeded ?? 0;
   const failed = job.jobsFailed ?? 0;
   const isRunning = job.status === "Running";
-  const percent = totalWaves > 0 ? Math.round((completedWaves / totalWaves) * 100) : 0;
+  const percent = clampPercent(totalWaves > 0 ? Math.round((completedWaves / totalWaves) * 100) : 0);
 
   if (totalWaves === 0 && !isRunning) {
     return <></>;

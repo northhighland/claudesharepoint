@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { ChevronDown, ChevronRight, ArrowUpCircle } from "lucide-react";
-import { cn, formatBytes, formatDate } from "@/lib/utils";
+import { cn, formatBytes, formatDate, clampPercent } from "@/lib/utils";
 import type { QuotaStatus } from "@/lib/types";
 
 interface TopSitesListProps {
@@ -66,7 +66,7 @@ export function TopSitesList({ title, sites, metric, limit = 20 }: TopSitesListP
                   <div className="absolute inset-0 rounded-lg overflow-hidden">
                     <div
                       className={cn(severity.bar, "h-full transition-all duration-500")}
-                      style={{ width: `${Math.min(barPercent, 100)}%` }}
+                      style={{ width: `${clampPercent(barPercent)}%` }}
                     />
                   </div>
                   {/* Content */}

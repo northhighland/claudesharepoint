@@ -88,9 +88,25 @@ async function handlePost(
       context.res = errorResponse("siteUrl, siteName, and ownerEmail are required.", 400);
       return;
     }
+
+    // Validate siteUrl format to prevent injection / open redirect
+    if (!/^https:\/\/[\w-]+\.sharepoint\.com\//.test(siteUrl)) {
+      context.res = errorResponse("Invalid SharePoint site URL format.", 400);
+      return;
+    }
+
+    // Validate ownerEmail is a plausible email (OWASP A03:2021 — Injection)
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(ownerEmail)) {
+      context.res = errorResponse("Invalid email format.", 400);
+      return;
+    }
+
+    // Sanitize siteName — strip any characters that could be used for log injection
+    const safeSiteName = siteName.replace(/[\r\n\t]/g, "").substring(0, 255);
+
     const principal = getClientPrincipal(req);
     context.log.info(
-      `[AUDIT] Stale site notification requested for ${siteUrl} (${siteName}) to ${ownerEmail} by ${principal.userDetails}`
+      `[AUDIT] Stale site notification requested for ${siteUrl} (${safeSiteName}) to ${ownerEmail} by ${principal.userDetails}`
     );
     context.res = jsonResponse({ notified: true, siteUrl, ownerEmail });
     return;

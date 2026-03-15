@@ -1,5 +1,6 @@
 "use client";
 
+import { clampPercent } from "@/lib/utils";
 import type { QuotaDistributionBucket } from "@/lib/types";
 
 interface DistributionChartProps {
@@ -30,7 +31,7 @@ export function DistributionChart({ data, isLoading }: DistributionChartProps): 
               <span className="font-mono text-xs font-bold">{bucket.count}</span>
               <div
                 className="w-full rounded-t-md bg-primary/60 hover:bg-primary/80 transition-colors min-h-[4px]"
-                style={{ height: `${Math.max(heightPercent, 2)}%` }}
+                style={{ height: `${clampPercent(heightPercent, 2)}%` }}
               />
               <span className="text-[10px] text-muted-foreground text-center leading-tight mt-1">
                 {bucket.label}

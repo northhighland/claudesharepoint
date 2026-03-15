@@ -221,7 +221,7 @@ export function SiteTable({
                       </td>
                       <td className="px-4 py-3 text-sm">
                         <div className="font-medium">{site.siteName}</div>
-                        <div className="text-xs text-muted-foreground" title={site.ownerEmail}>
+                        <div className="text-xs text-muted-foreground" title={maskEmail(site.ownerEmail)}>
                           {maskEmail(site.ownerEmail)}
                         </div>
                       </td>

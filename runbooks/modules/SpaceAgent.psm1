@@ -75,9 +75,10 @@ function Connect-SpaceAgent {
     $secret = Get-AzKeyVaultSecret -VaultName $KeyVaultName -Name $cert.Name -AsPlainText -ErrorAction Stop
     $certBytes = [Convert]::FromBase64String($secret)
 
-    $certPath = Join-Path $env:TEMP "$CertificateName.pfx"
+    # Write cert to temp with restricted ACL — cleaned up by Disconnect-SpaceAgent
+    $certPath = Join-Path $env:TEMP "$CertificateName-$(New-Guid).pfx"
     [System.IO.File]::WriteAllBytes($certPath, $certBytes)
-    Write-Output "Certificate saved to: $certPath"
+    Write-Verbose "Certificate written to temp path"
 
     # Connect PnP Online
     Write-Output "Connecting PnP Online to $SiteUrl..."
@@ -99,6 +100,54 @@ function Connect-SpaceAgent {
         SiteUrl         = $SiteUrl
         ConnectedAt     = (Get-Date).ToString("o")
     }
+}
+
+function Disconnect-SpaceAgent {
+    <#
+    .SYNOPSIS
+        Disconnect PnP and securely clean up temporary certificate files
+    .DESCRIPTION
+        Removes the PFX certificate from the temp directory and disconnects PnP Online.
+        Must be called in a finally block to prevent credential material on disk.
+        ISO 27001 A.8.10 — Information deletion.
+    .PARAMETER CertificatePath
+        Path to the temporary PFX file created by Connect-SpaceAgent
+    .EXAMPLE
+        try { ... } finally { Disconnect-SpaceAgent -CertificatePath $conn.CertificatePath }
+    #>
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$CertificatePath
+    )
+
+    # Remove certificate file from disk
+    if (Test-Path $CertificatePath) {
+        try {
+            # Overwrite with zeros before deletion to prevent forensic recovery
+            $length = (Get-Item $CertificatePath).Length
+            [System.IO.File]::WriteAllBytes($CertificatePath, [byte[]]::new($length))
+            Remove-Item -Path $CertificatePath -Force -ErrorAction Stop
+            Write-Verbose "Temporary certificate securely deleted"
+        }
+        catch {
+            Write-Warning "Failed to delete temporary certificate at ${CertificatePath}: $($_.Exception.Message)"
+        }
+    }
+
+    # Clear in-memory token references
+    $script:CurrentToken = $null
+    $script:CurrentHeaders = $null
+
+    # Disconnect PnP
+    try {
+        Disconnect-PnPOnline -ErrorAction SilentlyContinue
+    }
+    catch {
+        Write-Verbose "PnP disconnect: $($_.Exception.Message)"
+    }
+
+    Write-Output "SpaceAgent disconnected and credentials cleaned up"
 }
 
 #endregion
@@ -1283,6 +1332,7 @@ function Write-ErrorResult {
 Export-ModuleMember -Function @(
     # Authentication
     'Connect-SpaceAgent'
+    'Disconnect-SpaceAgent'
     # Token Refresh
     'Initialize-TokenRefresh'
     'Get-GraphToken'

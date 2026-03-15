@@ -90,10 +90,22 @@ async function automationRequest<T>(
   return response.json() as Promise<T>;
 }
 
+/**
+ * Validates that a resource name contains only safe characters to prevent
+ * path traversal or injection in Azure Management API URLs.
+ * OWASP A03:2021 — Injection
+ */
+function validateResourceName(name: string, label: string): void {
+  if (!/^[\w-]+$/.test(name) || name.length > 128) {
+    throw new Error(`Invalid ${label}: must be 1-128 alphanumeric/hyphen/underscore characters.`);
+  }
+}
+
 export async function triggerRunbook(
   runbookName: string,
   params: Record<string, string>
 ): Promise<string> {
+  validateResourceName(runbookName, "runbook name");
   const jobId = crypto.randomUUID();
 
   const body = {
@@ -111,6 +123,10 @@ export async function triggerRunbook(
 }
 
 export async function getJob(jobId: string): Promise<AutomationJob> {
+  // Validate jobId is a UUID to prevent path traversal
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(jobId)) {
+    throw new Error("Invalid job ID format: must be a UUID.");
+  }
   const result = await automationRequest<{
     properties: {
       jobId: string;
@@ -176,6 +192,7 @@ export async function listJobs(filter?: string): Promise<AutomationJob[]> {
 export async function getVariable(
   variableName: string
 ): Promise<AutomationVariable | null> {
+  validateResourceName(variableName, "variable name");
   try {
     const result = await automationRequest<{
       properties: {
@@ -206,6 +223,7 @@ export async function setVariable(
   value: string,
   description?: string
 ): Promise<void> {
+  validateResourceName(variableName, "variable name");
   const body = {
     name: variableName,
     properties: {
