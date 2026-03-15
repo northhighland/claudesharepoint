@@ -12,6 +12,7 @@ import { QuotaHistory } from "@/components/quota/quota-history";
 import { ActiveJobBanner } from "@/components/jobs/active-job-banner";
 import { JobDetail } from "@/components/jobs/job-detail";
 import { TriggerModal } from "@/components/jobs/trigger-modal";
+import { ExportButton } from "@/components/ui/export-button";
 import type { JobRun } from "@/lib/types";
 
 type FilterStatus = "all" | "Completed" | "Failed" | "Running";
@@ -61,13 +62,27 @@ export default function QuotaPage(): React.ReactElement {
             Storage health across the environment
           </p>
         </div>
-        <button
-          onClick={() => setTriggerOpen(true)}
-          className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
-        >
-          <Play className="h-4 w-4" />
-          Run Quota Manager
-        </button>
+        <div className="flex items-center gap-2">
+          <ExportButton
+            data={sites as unknown as Record<string, unknown>[]}
+            filename="quota-status"
+            columns={[
+              { key: "siteUrl", label: "Site URL" },
+              { key: "siteName", label: "Site Name" },
+              { key: "usedBytes", label: "Used" },
+              { key: "quotaBytes", label: "Quota" },
+              { key: "percentUsed", label: "% Used" },
+              { key: "autoIncreased", label: "Auto Increased" },
+            ]}
+          />
+          <button
+            onClick={() => setTriggerOpen(true)}
+            className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+          >
+            <Play className="h-4 w-4" />
+            Run Quota Manager
+          </button>
+        </div>
       </div>
 
       {/* Active job banner */}

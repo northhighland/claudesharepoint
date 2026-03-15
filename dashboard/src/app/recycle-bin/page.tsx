@@ -7,6 +7,7 @@ import { fetchJobs } from "@/lib/api";
 import { formatBytes, formatDate, getStatusColor, cn } from "@/lib/utils";
 import { JobDetail } from "@/components/jobs/job-detail";
 import { TriggerModal } from "@/components/jobs/trigger-modal";
+import { ExportButton } from "@/components/ui/export-button";
 import type { JobRun } from "@/lib/types";
 
 type FilterStatus = "all" | "Completed" | "Failed" | "Running";
@@ -53,13 +54,28 @@ export default function RecycleBinPage(): React.ReactElement {
             Recycle bin cleanup results across SharePoint sites
           </p>
         </div>
-        <button
-          onClick={() => setTriggerOpen(true)}
-          className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
-        >
-          <Play className="h-4 w-4" />
-          Run Recycle Bin Cleanup
-        </button>
+        <div className="flex items-center gap-2">
+          <ExportButton
+            data={(jobs ?? []) as unknown as Record<string, unknown>[]}
+            filename="recycle-bin-runs"
+            columns={[
+              { key: "runId", label: "Run ID" },
+              { key: "status", label: "Status" },
+              { key: "startedAt", label: "Started" },
+              { key: "totalSites", label: "Total Sites" },
+              { key: "processedSites", label: "Processed" },
+              { key: "failedSites", label: "Failed" },
+              { key: "totalSpaceReclaimedBytes", label: "Space Reclaimed" },
+            ]}
+          />
+          <button
+            onClick={() => setTriggerOpen(true)}
+            className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+          >
+            <Play className="h-4 w-4" />
+            Run Recycle Bin Cleanup
+          </button>
+        </div>
       </div>
 
       {/* Summary cards */}
