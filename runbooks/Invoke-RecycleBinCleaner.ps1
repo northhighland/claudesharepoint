@@ -40,7 +40,8 @@ param(
     [Parameter(Mandatory = $true)]
     [string]$StorageAccountName,
 
-    [switch]$DryRun
+    [Parameter(Mandatory = $false)]
+    [bool]$DryRun = $false
 )
 
 # ---------------------------------------------------------------------------

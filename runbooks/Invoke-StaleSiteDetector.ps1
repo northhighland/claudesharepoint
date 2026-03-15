@@ -35,7 +35,10 @@ param(
     [string]$KeyVaultName,
 
     [Parameter(Mandatory = $true)]
-    [string]$StorageAccountName
+    [string]$StorageAccountName,
+
+    [Parameter(Mandatory = $false)]
+    [bool]$DryRun = $false
 )
 
 # ---------------------------------------------------------------------------
