@@ -1,6 +1,6 @@
 "use client";
 
-import { formatBytes } from "@/lib/utils";
+import { formatBytes, clampPercent } from "@/lib/utils";
 import { DollarSign, TrendingDown } from "lucide-react";
 import { InfoTooltip } from "@/components/ui/info-tooltip";
 import type { StaleSiteRecommendation } from "@/lib/types";
@@ -85,7 +85,7 @@ export function ImpactSummary({ sites }: ImpactSummaryProps): React.ReactElement
               <div className="h-2 w-full rounded-full bg-muted/30 overflow-hidden">
                 <div
                   className={`h-full rounded-full ${cat.barColor} transition-all`}
-                  style={{ width: `${(cat.totalBytes / maxBytes) * 100}%` }}
+                  style={{ width: `${clampPercent((cat.totalBytes / maxBytes) * 100)}%` }}
                 />
               </div>
             </div>

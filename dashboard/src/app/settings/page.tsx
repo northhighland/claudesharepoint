@@ -6,6 +6,7 @@ import { usePolling } from "@/hooks/use-polling";
 import { fetchSettings, updateSettings } from "@/lib/api";
 import type { AppSettings, JobSchedule, JobType, StaleSiteWeights, StaleSiteThresholds } from "@/lib/types";
 import { InfoTooltip } from "@/components/ui/info-tooltip";
+import { sanitizeApiObject } from "@/lib/utils";
 import { JOB_TYPE_DISPLAY_NAMES } from "@/lib/types";
 
 const DEFAULT_SCHEDULE: JobSchedule = {
@@ -74,7 +75,7 @@ export default function SettingsPage(): React.ReactElement {
         const raw = rawSettings[key];
         if (raw) {
           try {
-            schedules[jt] = { ...DEFAULT_SCHEDULE, ...JSON.parse(raw) };
+            schedules[jt] = { ...DEFAULT_SCHEDULE, ...sanitizeApiObject(JSON.parse(raw)) };
           } catch {
             // Keep default if JSON is invalid
           }
@@ -85,11 +86,11 @@ export default function SettingsPage(): React.ReactElement {
       let staleSiteThresholds = DEFAULT_THRESHOLDS;
       const rawWeights = rawSettings.StaleSiteWeights;
       if (rawWeights) {
-        try { staleSiteWeights = { ...DEFAULT_WEIGHTS, ...JSON.parse(rawWeights) }; } catch {}
+        try { staleSiteWeights = { ...DEFAULT_WEIGHTS, ...sanitizeApiObject(JSON.parse(rawWeights)) }; } catch {}
       }
       const rawThresholds = rawSettings.StaleSiteThresholds;
       if (rawThresholds) {
-        try { staleSiteThresholds = { ...DEFAULT_THRESHOLDS, ...JSON.parse(rawThresholds) }; } catch {}
+        try { staleSiteThresholds = { ...DEFAULT_THRESHOLDS, ...sanitizeApiObject(JSON.parse(rawThresholds)) }; } catch {}
       }
 
       setForm((prev) => ({

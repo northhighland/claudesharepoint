@@ -50,8 +50,9 @@ resource keyVault 'Microsoft.KeyVault/vaults@2023-07-01' = {
     enabledForDeployment: false
     enabledForDiskEncryption: false
     enabledForTemplateDeployment: false
+    // ISO 27001 A.8.20 — Network access restricted by default; Azure services bypass for managed identity access
     networkAcls: {
-      defaultAction: 'Allow'
+      defaultAction: 'Deny'
       bypass: 'AzureServices'
     }
   }
@@ -85,7 +86,18 @@ resource logAnalytics 'Microsoft.OperationalInsights/workspaces@2023-09-01' = if
     }
     retentionInDays: logRetentionDays
     publicNetworkAccessForIngestion: 'Enabled'
+    // Restrict query access — only Azure portal and Automation runbooks need it
     publicNetworkAccessForQuery: 'Enabled'
+  }
+}
+
+// Resource lock — prevent accidental deletion of audit logs (ISO 27001 A.8.15)
+resource logAnalyticsLock 'Microsoft.Authorization/locks@2020-05-01' = if (enableLogAnalytics) {
+  name: '${logAnalyticsName}-lock'
+  scope: logAnalytics
+  properties: {
+    level: 'CanNotDelete'
+    notes: 'Prevent accidental deletion of audit and diagnostic logs'
   }
 }
 

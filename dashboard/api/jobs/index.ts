@@ -43,9 +43,10 @@ const handler: AzureFunction = async function (
 
     return await handleListJobs(context, req);
   } catch (error: unknown) {
-    const errMsg = error instanceof Error ? error.message : String(error);
-    context.log.error("jobs error:", errMsg);
-    context.res = errorResponse(`Job query failed: ${errMsg}`);
+    // Log full error server-side, but return a generic message to the client
+    // to prevent internal detail leakage (OWASP A01:2021, ISO 27001 A.8.25)
+    context.log.error("jobs error:", error);
+    context.res = errorResponse("An internal error occurred.");
   }
 };
 

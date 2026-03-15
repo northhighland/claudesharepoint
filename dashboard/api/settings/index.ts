@@ -150,10 +150,19 @@ async function handlePut(
     return;
   }
 
-  // Validate each value
+  // Validate each value — must be strings (prevent type confusion attacks)
   for (const key of providedKeys) {
     const value = body[key as SettingName];
     if (value === undefined) continue;
+    if (typeof value !== "string") {
+      context.res = errorResponse(`Value for ${key} must be a string.`, 400);
+      return;
+    }
+    // Cap value length to prevent oversized payloads
+    if (value.length > 2048) {
+      context.res = errorResponse(`Value for ${key} exceeds maximum length (2048).`, 400);
+      return;
+    }
     const validator = SETTING_VALIDATORS[key as SettingName];
     if (validator) {
       const error = validator(value);

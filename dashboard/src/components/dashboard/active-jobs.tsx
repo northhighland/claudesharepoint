@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { Play, Clock, CheckCircle2, AlertCircle } from "lucide-react";
-import { cn, formatDuration, formatDate, getStatusColor } from "@/lib/utils";
+import { cn, formatDuration, formatDate, getStatusColor, clampPercent } from "@/lib/utils";
 import { useNow } from "@/hooks/use-now";
 import type { JobRun, JobType } from "@/lib/types";
 
@@ -46,10 +46,11 @@ export function ActiveJobs({ jobs, isLoading }: ActiveJobsProps): React.ReactEle
       ) : (
         <div className="space-y-3">
           {displayJobs.map((job) => {
-            const progress =
+            const progress = clampPercent(
               job.totalSites > 0
                 ? Math.round((job.processedSites / job.totalSites) * 100)
-                : 0;
+                : 0
+            );
             const elapsed = job.durationMs
               ? formatDuration(job.durationMs)
               : job.startedAt

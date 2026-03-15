@@ -58,7 +58,10 @@ const handler: AzureFunction = async function (
       const cutoff = new Date();
       cutoff.setDate(cutoff.getDate() - days);
       const cutoffISO = cutoff.toISOString();
-      dateFilter = odata`Timestamp ge datetime'${cutoffISO}'`;
+      // The odata tagged template safely escapes the interpolated value.
+      // Azure Table Storage SDK expects ISO 8601 strings for Timestamp comparison
+      // without the OData v3 datetime'' wrapper.
+      dateFilter = odata`Timestamp ge ${cutoffISO}`;
     }
 
     // Query job runs within the selected range

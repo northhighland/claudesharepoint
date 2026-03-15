@@ -49,11 +49,19 @@ resource functionApp 'Microsoft.Web/sites@2023-12-01' = {
   properties: {
     serverFarmId: appServicePlan.id
     httpsOnly: true
+    // Disable client certificate requirement — SWA handles auth upstream
+    clientCertEnabled: false
     siteConfig: {
       ftpsState: 'Disabled'
       minTlsVersion: '1.2'
+      http20Enabled: true
       nodeVersion: '~20'
       appSettings: [
+        {
+          // Run from immutable package to prevent runtime file tampering (ISO 27001 A.8.9)
+          name: 'WEBSITE_RUN_FROM_PACKAGE'
+          value: '1'
+        }
         {
           name: 'AzureWebJobsStorage__accountName'
           value: storageAccountName

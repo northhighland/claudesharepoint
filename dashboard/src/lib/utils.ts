@@ -65,3 +65,30 @@ export function formatNumber(num: number): string {
   if (num >= 1000) return `${(num / 1000).toFixed(1)}K`;
   return num.toLocaleString();
 }
+
+/**
+ * Clamp a numeric value to [min, max] to prevent CSS injection
+ * via unconstrained values in inline styles (e.g., width percentages).
+ * OWASP: CSS Injection / Style Attribute Manipulation
+ */
+export function clampPercent(value: number, min = 0, max = 100): number {
+  if (!Number.isFinite(value)) return min;
+  return Math.min(Math.max(value, min), max);
+}
+
+/**
+ * Sanitize an object by removing prototype pollution keys.
+ * Prevents __proto__, constructor, and prototype keys from
+ * being spread into application objects via API responses.
+ * OWASP: Mass Assignment / Prototype Pollution
+ */
+export function sanitizeApiObject<T extends Record<string, unknown>>(obj: T): T {
+  const DANGEROUS_KEYS = new Set(["__proto__", "constructor", "prototype"]);
+  const clean = {} as Record<string, unknown>;
+  for (const key of Object.keys(obj)) {
+    if (!DANGEROUS_KEYS.has(key)) {
+      clean[key] = obj[key];
+    }
+  }
+  return clean as T;
+}

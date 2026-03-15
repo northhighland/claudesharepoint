@@ -1,6 +1,6 @@
 "use client";
 
-import { cn } from "@/lib/utils";
+import { cn, clampPercent } from "@/lib/utils";
 import { InfoTooltip } from "@/components/ui/info-tooltip";
 
 interface TenantHealthGaugeProps {
@@ -55,14 +55,14 @@ function SubMetric({
         {isLoading ? (
           <div className="h-3 w-8 animate-pulse rounded bg-muted" />
         ) : (
-          <span className="font-mono text-xs font-medium">{value}%</span>
+          <span className="font-mono text-xs font-medium">{clampPercent(value)}%</span>
         )}
       </div>
       <div className="h-1.5 w-full rounded-full bg-muted/50">
         {!isLoading && (
           <div
             className={cn("h-1.5 rounded-full transition-all duration-1000", barColor)}
-            style={{ width: `${value}%` }}
+            style={{ width: `${clampPercent(value)}%` }}
           />
         )}
       </div>
@@ -96,7 +96,8 @@ export function TenantHealthGauge({
 
   const arcPath = `M ${startX} ${startY} A ${radius} ${radius} 0 0 1 ${endX} ${endY}`;
   const circumference = totalArc * radius;
-  const progress = isLoading ? 0 : (score / 100) * circumference;
+  const clampedScore = clampPercent(score);
+  const progress = isLoading ? 0 : (clampedScore / 100) * circumference;
   const dashOffset = circumference - progress;
 
   const scoreColor = getScoreColor(score);

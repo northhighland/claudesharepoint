@@ -17,7 +17,22 @@ function getAccountName(): string {
   return accountName;
 }
 
+/**
+ * Known table names — acts as an allowlist to prevent injection
+ * into the Table Storage URL (OWASP A03:2021 — Injection).
+ */
+const ALLOWED_TABLES = new Set([
+  "JobRuns",
+  "VersionCleanupResults",
+  "QuotaStatus",
+  "StaleSiteRecommendations",
+  "RecycleBinResults",
+]);
+
 export function getTableClient(tableName: string): TableClient {
+  if (!ALLOWED_TABLES.has(tableName)) {
+    throw new Error(`Access to table '${tableName}' is not permitted.`);
+  }
   const accountName = getAccountName();
   const url = `https://${accountName}.table.core.windows.net`;
   return new TableClient(url, tableName, credential);
