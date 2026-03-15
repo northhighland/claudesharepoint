@@ -154,7 +154,7 @@ export function SiteLeaderboard({ jobs }: SiteLeaderboardProps): React.ReactElem
               tickLine={false}
             />
             <Tooltip
-              content={({ active, payload }) => {
+              content={({ active, payload }: { active?: boolean; payload?: Array<{ payload?: Record<string, unknown> }> }) => {
                 if (!active || !payload || payload.length === 0) return null;
                 const d = payload[0]?.payload as { fullName?: string; reclaimedBytes?: number; versionsDeleted?: number } | undefined;
                 if (!d) return null;

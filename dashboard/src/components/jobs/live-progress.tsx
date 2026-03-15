@@ -1,6 +1,7 @@
 "use client";
 
 import { formatDuration } from "@/lib/utils";
+import { useNow } from "@/hooks/use-now";
 import type { JobRun } from "@/lib/types";
 
 interface LiveProgressProps {
@@ -16,9 +17,10 @@ export function LiveProgress({ job }: LiveProgressProps): React.ReactElement {
   const percent = job.totalSites > 0 ? Math.round((processed / job.totalSites) * 100) : 0;
 
   // Calculate ETA based on elapsed time and progress
+  const now = useNow(5000);
   let etaText = "";
   if (job.startedAt && percent > 0 && percent < 100) {
-    const elapsedMs = Date.now() - new Date(job.startedAt).getTime();
+    const elapsedMs = now - new Date(job.startedAt).getTime();
     const estimatedTotalMs = (elapsedMs / percent) * 100;
     const remainingMs = estimatedTotalMs - elapsedMs;
     etaText = `~${formatDuration(remainingMs)} remaining`;

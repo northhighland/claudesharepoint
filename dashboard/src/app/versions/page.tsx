@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback } from "react";
 import {
   FileStack,
   CheckCircle2,
@@ -34,19 +34,17 @@ export default function VersionsPage(): React.ReactElement {
   const [selectedJob, setSelectedJob] = useState<JobRun | null>(null);
   const [triggerOpen, setTriggerOpen] = useState(false);
 
-  const [pollInterval, setPollInterval] = useState(30000);
   const fetcher = useCallback(
     () => fetchJobs({ jobType: "VersionCleanup" }),
     []
   );
-  const { data: jobs, isLoading, mutate } = usePolling("version-jobs", fetcher, pollInterval);
-  const lastUpdated = jobs ? new Date().toISOString() : undefined;
-
   // Dynamic polling: 5s when jobs are running, 30s otherwise
-  useEffect(() => {
-    const hasRunning = (jobs ?? []).some((j) => j.status === "Running");
-    setPollInterval(hasRunning ? 5000 : 30000);
-  }, [jobs]);
+  const { data: jobs, isLoading, mutate } = usePolling(
+    "version-jobs",
+    fetcher,
+    (data) => (data ?? []).some((j) => j.status === "Running") ? 5000 : 30000
+  );
+  const lastUpdated = jobs ? new Date().toISOString() : undefined;
 
   const filtered = (jobs ?? []).filter(
     (j) => statusFilter === "all" || j.status === statusFilter
@@ -78,7 +76,7 @@ export default function VersionsPage(): React.ReactElement {
             File version cleanup results across SharePoint sites
           </p>
           <div className="mt-1 flex items-center gap-3">
-            <DataFreshness lastUpdated={lastUpdated} pollInterval={pollInterval} />
+            <DataFreshness lastUpdated={lastUpdated} pollInterval={30000} />
             <NextRunIndicator jobType="VersionCleanup" />
           </div>
         </div>

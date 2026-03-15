@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { Play, Clock, CheckCircle2, AlertCircle } from "lucide-react";
 import { cn, formatDuration, formatDate, getStatusColor } from "@/lib/utils";
+import { useNow } from "@/hooks/use-now";
 import type { JobRun, JobType } from "@/lib/types";
 
 const JOB_TYPE_ROUTES: Record<JobType, string> = {
@@ -18,6 +19,8 @@ interface ActiveJobsProps {
 }
 
 export function ActiveJobs({ jobs, isLoading }: ActiveJobsProps): React.ReactElement {
+  const now = useNow(5000);
+
   if (isLoading) {
     return (
       <div className="glass-card rounded-xl p-6">
@@ -50,7 +53,7 @@ export function ActiveJobs({ jobs, isLoading }: ActiveJobsProps): React.ReactEle
             const elapsed = job.durationMs
               ? formatDuration(job.durationMs)
               : job.startedAt
-                ? formatDuration(Date.now() - new Date(job.startedAt).getTime())
+                ? formatDuration(now - new Date(job.startedAt).getTime())
                 : "--";
 
             return (

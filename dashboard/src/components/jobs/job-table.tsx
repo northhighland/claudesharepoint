@@ -15,6 +15,28 @@ interface JobTableProps {
 type SortKey = "startedAt" | "jobType" | "status" | "processedSites" | "totalSpaceReclaimedBytes";
 type SortDir = "asc" | "desc";
 
+function SortHeader({
+  label,
+  sortable,
+  onSort,
+}: {
+  label: string;
+  sortable: SortKey;
+  onSort: (key: SortKey) => void;
+}): React.ReactElement {
+  return (
+    <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">
+      <button
+        className="flex items-center gap-1 hover:text-foreground"
+        onClick={() => onSort(sortable)}
+      >
+        {label}
+        <ArrowUpDown className="h-3 w-3" />
+      </button>
+    </th>
+  );
+}
+
 export function JobTable({ jobs, isLoading, onSelectJob }: JobTableProps): React.ReactElement {
   const [sortKey, setSortKey] = useState<SortKey>("startedAt");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
@@ -39,24 +61,6 @@ export function JobTable({ jobs, isLoading, onSelectJob }: JobTableProps): React
     return sortDir === "asc" ? aVal - bVal : bVal - aVal;
   });
 
-  const SortHeader = ({
-    label,
-    sortable,
-  }: {
-    label: string;
-    sortable: SortKey;
-  }): React.ReactElement => (
-    <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">
-      <button
-        className="flex items-center gap-1 hover:text-foreground"
-        onClick={() => handleSort(sortable)}
-      >
-        {label}
-        <ArrowUpDown className="h-3 w-3" />
-      </button>
-    </th>
-  );
-
   if (isLoading) {
     return (
       <div className="overflow-hidden glass-card rounded-xl shadow-sm">
@@ -75,17 +79,17 @@ export function JobTable({ jobs, isLoading, onSelectJob }: JobTableProps): React
         <table className="w-full">
           <thead className="border-b border-border bg-muted/20">
             <tr>
-              <SortHeader label="Type" sortable="jobType" />
-              <SortHeader label="Status" sortable="status" />
-              <SortHeader label="Started" sortable="startedAt" />
+              <SortHeader onSort={handleSort} label="Type" sortable="jobType" />
+              <SortHeader onSort={handleSort} label="Status" sortable="status" />
+              <SortHeader onSort={handleSort} label="Started" sortable="startedAt" />
               <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">
                 Duration
               </th>
-              <SortHeader label="Sites" sortable="processedSites" />
+              <SortHeader onSort={handleSort} label="Sites" sortable="processedSites" />
               <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">
                 Errors
               </th>
-              <SortHeader label="Reclaimed" sortable="totalSpaceReclaimedBytes" />
+              <SortHeader onSort={handleSort} label="Reclaimed" sortable="totalSpaceReclaimedBytes" />
             </tr>
           </thead>
           <tbody className="divide-y divide-border">

@@ -90,7 +90,7 @@ export function StorageTrendChart({
                   year: "numeric",
                 })
               }
-              formatter={(value: number) => [`${value.toFixed(2)} GB`, "Reclaimed"]}
+              formatter={(value) => [`${Number(value ?? 0).toFixed(2)} GB`, "Reclaimed"]}
             />
             <Area
               type="monotone"

@@ -95,6 +95,7 @@ module storage 'modules/storage-account.bicep' = if (enableStorageAccount) {
   params: {
     clientCode: clientCode
     location: location
+    logAnalyticsWorkspaceId: enableLogAnalytics ? logAnalytics.id : ''
     tags: tags
   }
 }
@@ -127,6 +128,7 @@ module functionApp 'modules/function-app.bicep' = {
   params: {
     clientCode: clientCode
     location: location
+    logAnalyticsWorkspaceId: enableLogAnalytics ? logAnalytics.id : ''
     adminUsers: adminUsers
     tags: tags
   }
@@ -289,6 +291,16 @@ resource jobFailureAlert 'Microsoft.Insights/metricAlerts@2018-03-01' = if (!emp
       }
     ]
     description: 'Alert when claudesharepoint automation jobs fail'
+  }
+}
+
+// Resource locks — prevent accidental deletion of critical resources
+resource keyVaultLock 'Microsoft.Authorization/locks@2020-05-01' = {
+  name: '${keyVaultName}-lock'
+  scope: keyVault
+  properties: {
+    level: 'CanNotDelete'
+    notes: 'Prevent accidental deletion of Key Vault containing SPO credentials'
   }
 }
 

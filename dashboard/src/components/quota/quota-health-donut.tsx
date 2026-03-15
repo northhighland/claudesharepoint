@@ -67,9 +67,9 @@ export function QuotaHealthDonut({ sites, isLoading }: QuotaHealthDonutProps): R
                     borderRadius: "0.5rem",
                     fontSize: "0.75rem",
                   }}
-                  formatter={(value: number, _name: string, props: { payload?: SegmentData }) => [
-                    `${value} sites`,
-                    props.payload?.label ?? "",
+                  formatter={(value, _name, props) => [
+                    `${value ?? 0} sites`,
+                    (props.payload as SegmentData | undefined)?.label ?? "",
                   ]}
                 />
               </PieChart>

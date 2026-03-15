@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback } from "react";
 import {
   Trash2,
   CheckCircle2,
@@ -32,19 +32,17 @@ export default function RecycleBinPage(): React.ReactElement {
   const [selectedJob, setSelectedJob] = useState<JobRun | null>(null);
   const [triggerOpen, setTriggerOpen] = useState(false);
 
-  const [pollInterval, setPollInterval] = useState(30000);
   const fetcher = useCallback(
     () => fetchJobs({ jobType: "RecycleBinCleaner" }),
     []
   );
-  const { data: jobs, isLoading, mutate } = usePolling("recycle-bin-jobs", fetcher, pollInterval);
-  const lastUpdated = jobs ? new Date().toISOString() : undefined;
-
   // Dynamic polling: 5s when jobs are running, 30s otherwise
-  useEffect(() => {
-    const hasRunning = (jobs ?? []).some((j) => j.status === "Running");
-    setPollInterval(hasRunning ? 5000 : 30000);
-  }, [jobs]);
+  const { data: jobs, isLoading, mutate } = usePolling(
+    "recycle-bin-jobs",
+    fetcher,
+    (data) => (data ?? []).some((j) => j.status === "Running") ? 5000 : 30000
+  );
+  const lastUpdated = jobs ? new Date().toISOString() : undefined;
 
   const filtered = (jobs ?? []).filter(
     (j) => statusFilter === "all" || j.status === statusFilter
@@ -70,7 +68,7 @@ export default function RecycleBinPage(): React.ReactElement {
             Recycle bin cleanup results across SharePoint sites
           </p>
           <div className="mt-1 flex items-center gap-3">
-            <DataFreshness lastUpdated={lastUpdated} pollInterval={pollInterval} />
+            <DataFreshness lastUpdated={lastUpdated} pollInterval={30000} />
             <NextRunIndicator jobType="RecycleBinCleaner" />
           </div>
         </div>
