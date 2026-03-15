@@ -15,6 +15,8 @@ const SETTING_VARIABLES = [
   "ScheduleRecycleBinCleaner",
   "ScheduleQuotaManager",
   "ScheduleStaleSiteDetector",
+  "StaleSiteWeights",
+  "StaleSiteThresholds",
 ] as const;
 
 type SettingName = (typeof SETTING_VARIABLES)[number];
@@ -55,6 +57,16 @@ const SETTING_VALIDATORS: Record<SettingName, (v: string) => string | null> = {
   ScheduleRecycleBinCleaner: validateScheduleJson,
   ScheduleQuotaManager: validateScheduleJson,
   ScheduleStaleSiteDetector: validateScheduleJson,
+  StaleSiteWeights: (v) => {
+    if (v === "") return null;
+    try { const o = JSON.parse(v); if (typeof o !== "object") return "Must be JSON object"; return null; }
+    catch { return "Must be valid JSON"; }
+  },
+  StaleSiteThresholds: (v) => {
+    if (v === "") return null;
+    try { const o = JSON.parse(v); if (typeof o !== "object") return "Must be JSON object"; return null; }
+    catch { return "Must be valid JSON"; }
+  },
 };
 
 const handler: AzureFunction = async function (
